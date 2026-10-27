@@ -334,6 +334,16 @@ async function handle(req, res) {
         { id: 'private-boundary', label: '私有数据边界', state: 'passed', detail: '工作台 API 与 AIHOT 公开层分离' },
       ] });
     }
+    if (req.method === 'GET' && url.pathname === '/api/studio/runtime/dependencies') {
+      const hermes=await hermesStatus();
+      return json(res,200,{dependencies:[
+        {id:'aihot',name:'AIHOT 情报引擎',state:db.integration.aihot.mode,detail:`公开 API ${db.integration.aihot.endpoint || '未配置'} · 缓存 ${db.integration.aihot.count||0} 条`},
+        {id:'hermes',name:'Hermes 文案引擎',state:hermes.mode,detail:hermes.detail,model:hermes.model||null},
+        {id:'douyin',name:'抖音素材流水线',state:'adapter_ready',detail:'任务适配器已接通；ASR/评论按配置阶段执行'},
+        {id:'dbskill',name:'dbskill',state:'local_compatibility',detail:'当前执行本地兼容规则；原始 Skill 执行器待授权/适配'},
+        {id:'feishu',name:'飞书',state:'export_only',detail:'支持导出文件导入；自动 API 同步和回写关闭'},
+      ],boundaries:{autoPublish:false,feishuWrite:false,unknownReceiptAutoRetry:false}});
+    }
     if (req.method === 'GET' && url.pathname.match(/^\/api\/studio\/jobs\/[^/]+\/runs$/)) {
       const jobId = decodeURIComponent(url.pathname.split('/')[4]); return json(res, 200, db.taskRuns.filter(item => item.jobId === jobId));
     }

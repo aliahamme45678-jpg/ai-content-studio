@@ -310,7 +310,7 @@ function render() {
   }
   if (state.view === 'settings' && !state.data.aihotDiagnostics && !state.diagnosticsLoading) {
     state.diagnosticsLoading = true;
-    Promise.all([api('/api/studio/integrations/aihot/diagnostics'),api('/api/studio/integrations/hermes/status'),api('/api/studio/integrations/hermes/capability'),api('/api/studio/douyin/workspace')]).then(([value,hermes,capability,douyin])=>{state.data.aihotDiagnostics=value;state.data.hermesStatus=hermes;state.data.hermesCapability=capability;state.data.douyinCapability=douyin.capabilities;if(state.view==='settings')render();}).catch(() => {}).finally(() => { state.diagnosticsLoading = false; });
+    Promise.all([api('/api/studio/integrations/aihot/diagnostics'),api('/api/studio/integrations/hermes/status'),api('/api/studio/integrations/hermes/capability'),api('/api/studio/douyin/workspace'),api('/api/studio/runtime/dependencies')]).then(([value,hermes,capability,douyin,dependencies])=>{state.data.aihotDiagnostics=value;state.data.hermesStatus=hermes;state.data.hermesCapability=capability;state.data.douyinCapability=douyin.capabilities;state.data.dependencies=dependencies;if(state.view==='settings'){render();drawDependencyPanel();}}).catch(() => {}).finally(() => { state.diagnosticsLoading = false; });
   }
   if (state.view === 'queue') api('/api/studio/runtime/task-summary').then(summary => { const ai = summary.aiHot; const node = $('#aihot-task-detail'); if (node) node.innerHTML = ai ? `已分析 ${ai.analyzed} · 待处理 ${ai.pending} · 失败 ${ai.failed} · blocked ${ai.blocked} · 公开 ${ai.public_items} · 精选 ${ai.selected_items}` : 'AIHOT 诊断不可用'; }).catch(error => { const node = $('#aihot-task-detail'); if (node) node.textContent = error.message; });
   if (state.view === 'studio' && state.jobId) {
@@ -327,6 +327,13 @@ function render() {
     }).catch(() => {});
   }
   if (state.view === 'checklist') api('/api/studio/runtime/checklist').then(result => { const node = $('#checklist-panel'); if (node) node.innerHTML = result.items.map(item => `<div class="job-row"><span class="status ${item.state === 'passed' ? 'done' : ''}">${item.state === 'passed' ? '已通过' : '待完成'}</span><div><div class="job-title">${esc(item.label)}</div><div class="job-sub">${esc(item.detail)}</div></div></div>`).join(''); }).catch(error => { const node = $('#checklist-panel'); if (node) node.textContent = error.message; });
+}
+
+function drawDependencyPanel(){
+  if($('#dependency-list'))return;
+  const page=document.querySelector('.page');if(!page)return;
+  const section=document.createElement('section');section.className='panel';section.style.marginBottom='14px';section.innerHTML=`<div class="panel-head"><div><h3>依赖与边界</h3><div class="job-sub">只显示真实连接状态；未接通能力不会伪装完成。</div></div><span class="tag">运行体检</span></div><div id="dependency-list">${(state.data.dependencies?.dependencies||[]).map(item=>`<div class="job-row"><span class="status ${['live','ready','adapter_ready'].includes(item.state)?'done':''}">${esc(item.state)}</span><div><div class="job-title">${esc(item.name)}</div><div class="job-sub">${esc(item.detail)}</div></div></div>`).join('')}</div><p class="job-sub">自动发布：关闭 · 飞书回写：关闭 · unknown 回执自动重发：关闭</p>`;
+  page.querySelector('.welcome')?.after(section);
 }
 
 load().catch(error => { $('#app').innerHTML = `<div class="page"><div class="panel">无法加载本地工作台：${esc(error.message)}</div></div>`; });

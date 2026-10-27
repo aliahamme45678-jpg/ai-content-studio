@@ -13,7 +13,7 @@ function config() {
 export async function hermesStatus() {
   const cfg=config();
   if(!cfg.endpoint)return {configured:false,connected:false,mode:'not_configured',detail:'HERMES_API_URL 未配置'};
-  const memoryRoot=process.env.MEMORY_ROOT||'';const materialPath=process.env.MATERIAL_PATH||'';
+  const memoryRoot=cfg.memoryRoot;const materialPath=cfg.materialPath;
   const memoryReady=Boolean(memoryRoot)&&existsSync(memoryRoot);const materialReady=Boolean(materialPath)&&existsSync(materialPath);const ready=Boolean(cfg.key&&cfg.model&&memoryReady&&materialReady);
   return {configured:true,connected:false,mode:ready?'ready':'incomplete',endpoint:cfg.endpoint.replace(/\/[^/]*$/,'/…'),model:cfg.model,hasKey:Boolean(cfg.key),memoryConfigured:memoryReady,materialConfigured:materialReady,memoryRootConfigured:Boolean(memoryRoot),materialPathConfigured:Boolean(materialPath),missing:[!cfg.key?'HERMES_API_KEY':null,!cfg.model?'HERMES_MODEL':null,!memoryReady?'MEMORY_ROOT':null,!materialReady?'MATERIAL_PATH':null].filter(Boolean),detail:ready?'配置完整，首次生成时检查服务连通性':'配置不完整，缺少本地素材或记忆路径'};
 }
