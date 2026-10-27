@@ -25,7 +25,7 @@ function drawDouyin() {
   const docs=data.documents;
   const stage=(title,detail,ready)=>`<div class="pipeline-stage"><strong>${title}</strong><span class="tag">${ready?'可用':'未接通'}</span><p class="job-sub">${detail}</p></div>`;
   shell('抖音素材流水线','采集与转写负责材料，写作模板主导表达，Skill 按阶段诊断。',`
-    <div class="pipeline-stages">${stage('作品采集','游客模式作品采集；不含转写、评论和推送',true)}${stage('转写与导入','导入转写结果，核对正文和播放量',true)}${stage('选题与创作','素材入库后创建独立内容任务',true)}${stage('按需审核','dbskill 组合可配置，执行器尚未接入',false)}</div>
+    <div class="pipeline-stages">${stage('作品采集','游客模式作品采集；不含转写、评论和推送',true)}${stage('转写与导入','ASR 配置后可补跑，当前保持原始数据',data.capabilities.transcription==='configured')}${stage('评论蒸馏','评论适配器尚未接通，失败不影响作品数据',false)}${stage('选题与创作','素材入库后创建独立内容任务',true)}</div>
     <div class="panel" style="margin:16px 0"><div class="panel-head"><div><h3>素材处理台</h3><div class="job-sub">${docs.length} 条素材 · ${data.batches.length} 个导入批次 · ${data.plans.length} 个组合方案</div></div><button class="primary" id="pipeline-open-import">导入流水线结果</button></div>
     <div class="tabs">${[['collect','采集任务'],['materials','素材列表'],['batches','导入批次'],['skills','Skill 组合']].map(([key,label])=>`<button class="tab ${douyinTab===key?'active':''}" data-pipeline-tab="${key}">${label}</button>`).join('')}</div>
     <div id="pipeline-content"></div></div>

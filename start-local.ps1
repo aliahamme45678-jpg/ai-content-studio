@@ -38,6 +38,12 @@ $env:DEV_AUTH_ROLE = 'admin'
 $env:DEV_AUTH_DISPLAY_NAME = 'Local Admin'
 $env:AIHOT_BASE_URL = 'http://127.0.0.1:3000'
 $env:AIHOT_DATABASE_URL = $env:DATABASE_URL
+$hermesEnv = Join-Path $root 'app\.runtime-data\hermes.env'
+if (Test-Path $hermesEnv) {
+  foreach ($line in Get-Content $hermesEnv) {
+    if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process') }
+  }
+}
 
 if (!(Get-NetTCPConnection -LocalPort 5432 -State Listen -ErrorAction SilentlyContinue)) {
   Start-Process -FilePath (Join-Path $pgDir 'pg_ctl.exe') -ArgumentList @('-D', $pgData, '-l', $pgLog, 'start') -WorkingDirectory $root -WindowStyle Hidden | Out-Null

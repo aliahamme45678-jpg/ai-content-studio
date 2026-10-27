@@ -8,11 +8,12 @@ import { parseGeneration, validateGeneration } from './generation-output.mjs';
 import { retrieveKnowledge, sourceSnapshot } from './retrieval.mjs';
 import { inspectDraft, bodyHash, invalidateAudit } from './audit.mjs';
 import { parseImportRows } from './import-rows.mjs';
+import { hermesCapability, hermesGenerate, hermesHealth, hermesStatus } from './integrations/hermes-client.mjs';
 import { runSkillPipeline, SKILL_LICENSE } from './skills-local.mjs';
 import { createAuth, sameOriginRequest } from './auth.mjs';
 import { spawn } from 'node:child_process';
 import { collectionRequest } from './collection-request.mjs';
-import postgres from '../../opensource/AIHOT/node_modules/postgres/src/index.js';
+import postgres from 'postgres';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(root, '..', 'public');
@@ -24,6 +25,7 @@ const studioToken = process.env.STUDIO_TOKEN || '';
 const auth = createAuth(studioToken);
 let aihotBaseUrl = (process.env.AIHOT_BASE_URL || '').replace(/\/$/, '');
 let aihotDbUrl = process.env.AIHOT_DATABASE_URL || '';
+const hermesConfigFile = join(dataDir, 'hermes.env');
 const collectionProcesses = new Map();
 function stopCollection(child) {
   if (!child?.pid || child.exitCode !== null) return;
@@ -162,6 +164,27 @@ async function handle(req, res) {
     }
     if (req.method === 'POST' && url.pathname === '/api/studio/auth/logout') { auth.logout(req); res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'set-cookie': auth.cookie(null), 'cache-control':'no-store' }); return res.end(JSON.stringify({ authenticated: false })); }
     if (!authorized(req)) return json(res, 401, { error: 'studio_auth_required' });
+    if(req.method==='GET' && url.pathname==='/api/studio/integrations/hermes/status')return json(res,200,await hermesStatus());
+    if(req.method==='GET' && url.pathname==='/api/studio/integrations/hermes/capability')return json(res,200,await hermesCapability());
+    if(req.method==='POST' && url.pathname==='/api/studio/integrations/hermes/health')return json(res,200,await hermesHealth());
+    if(req.method==='POST' && url.pathname==='/api/studio/integrations/hermes/config'){
+      const input=await body(req);const endpoint=String(input.apiUrl||'').trim();const model=String(input.model||'').trim();const key=String(input.apiKey||'').trim();const memoryRoot=String(input.memoryRoot||'').trim();const materialPath=String(input.materialPath||'').trim();
+      if(endpoint && !/^https?:\/\/[^\s]+$/i.test(endpoint))return json(res,400,{error:'invalid_hermes_api_url'});
+      await mkdir(dataDir,{recursive:true});await writeFile(hermesConfigFile,[`HERMES_API_URL=${endpoint}`,`HERMES_API_KEY=${key}`,`HERMES_MODEL=${model}`,`MEMORY_ROOT=${memoryRoot}`,`MATERIAL_PATH=${materialPath}`].join('\n')+'\n','utf8');
+      const status=await hermesStatus(); return json(res,200,{saved:true,...status});
+    }
+    if(req.method==='POST' && url.pathname.match(/^\/api\/studio\/writing\/jobs\/[^/]+\/hermes-generate$/)){
+      const job=db.jobs.find(item=>item.id===decodeURIComponent(url.pathname.split('/')[5]));if(!job)return json(res,404,{error:'job_not_found'});
+      const hermesReady=await hermesStatus();if(hermesReady.mode!=='ready')return json(res,409,{error:'hermes_incomplete_configuration',missing:hermesReady.missing,detail:hermesReady.detail});
+      const input=await body(req);const template=job.templateSnapshot||db.templates.find(item=>item.id===job.templateVersionId)||{};const run={id:id('run'),jobId:job.id,taskKind:'hermes-generate',state:'running',startedAt:new Date().toISOString(),cost:null,engine:'hermes'};db.taskRuns.unshift(run);await saveDb(db);
+      try{const result=await hermesGenerate({system:template.prompt||'根据用户任务生成完整正文，不要输出提示词。',user:`任务：${job.title}\n原稿/当前正文：${input.body||job.body}\n知识资料：${JSON.stringify(input.knowledge||[])}`});const version={id:id('ver'),jobId:job.id,body:result.body,model:`hermes:${result.model}`,usage:result.usage,reason:'Hermes 生成',parentVersionId:null,createdAt:new Date().toISOString()};db.versions.unshift(version);job.body=version.body;job.status='待审核';job.updatedAt='刚刚';run.state='succeeded';run.finishedAt=new Date().toISOString();run.model=version.model;run.usage=result.usage;await saveDb(db);return json(res,201,{job,version,run});}catch(error){run.state='failed';run.finishedAt=new Date().toISOString();run.error=error.message;await saveDb(db);return json(res,502,{error:'hermes_generation_failed',detail:run.error,runId:run.id});}
+    }
+    if(req.method==='POST' && url.pathname.match(/^\/api\/studio\/writing\/jobs\/[^/]+\/hermes-section$/)){
+      const job=db.jobs.find(item=>item.id===decodeURIComponent(url.pathname.split('/')[5]));if(!job)return json(res,404,{error:'job_not_found'});
+      const hermesReady=await hermesStatus();if(hermesReady.mode!=='ready')return json(res,409,{error:'hermes_incomplete_configuration',missing:hermesReady.missing,detail:hermesReady.detail});
+      const input=await body(req);const target=['opening','body','ending'].includes(input.section)?input.section:'body';const previous=String(job.body||'');const run={id:id('run'),jobId:job.id,taskKind:`hermes-section:${target}`,state:'running',startedAt:new Date().toISOString(),cost:null,engine:'hermes'};db.taskRuns.unshift(run);await saveDb(db);
+      try{const result=await hermesGenerate({system:'只改写指定段落，保留其他内容不变。输出纯正文，不要提示词、Markdown 或解释。',user:`段落：${target}\n原始全文：\n${previous}\n目标要求：${input.instruction||'让这一段更清晰、具体、符合模板。'}`});const lines=previous.split(/\n\s*\n/);const index=target==='opening'?0:target==='ending'?Math.max(0,lines.length-1):Math.min(1,Math.max(0,lines.length-1));lines[index]=result.body;const next=lines.join('\n\n');const version={id:id('ver'),jobId:job.id,body:next,parentVersionId:db.versions.find(item=>item.jobId===job.id)?.id||null,reason:`Hermes 局部重构：${target}`,model:`hermes:${result.model}`,usage:result.usage,createdAt:new Date().toISOString()};db.versions.unshift(version);job.body=next;job.status='待重新验证';run.state='succeeded';run.finishedAt=new Date().toISOString();run.model=version.model;await saveDb(db);return json(res,201,{job,version,run});}catch(error){run.state='failed';run.finishedAt=new Date().toISOString();run.error=error.message;await saveDb(db);return json(res,502,{error:'hermes_section_failed',detail:run.error,runId:run.id});}
+    }
     if (req.method==='GET' && url.pathname==='/api/studio/auth/status') return json(res,200,{authenticated:true,mode:auth.enabled?'session':'local'});
     if (req.method === 'GET' && routes[url.pathname]) return json(res, 200, await routes[url.pathname](db));
     if (req.method==='GET' && url.pathname==='/api/studio/douyin/workspace') {
@@ -169,7 +192,7 @@ async function handle(req, res) {
         documents:db.documents.filter(doc=>doc.source==='douyin-material-pipeline'),
         batches:db.importPreviews.filter(item=>item.type==='douyin-material').map(item=>({id:item.id,count:item.count,unknownPlayCount:item.unknownPlayCount,state:item.state,createdAt:item.createdAt,commitResult:item.commitResult || null})),
         plans:db.pipelinePlans,tasks:db.taskRuns.filter(run=>run.taskKind==='douyin-collect'),
-        capabilities:{import:'ready',collection:'adapter_ready',transcription:'not_connected',feishu:'disabled',skills:'planning_only'},
+        capabilities:{import:'ready',collection:'adapter_ready',transcription:process.env.DASHSCOPE_API_KEY?'configured':'not_configured',comments:'not_connected',feishu:'disabled',skills:'planning_only'},
       });
     }
     if(req.method==='GET' && url.pathname==='/api/studio/feishu/status') return json(res,200,{enabled:false,mode:'export-import-only',mappings:db.feishuMappings});
@@ -193,6 +216,15 @@ async function handle(req, res) {
       return json(res,202,run);
     }
     if(req.method==='GET' && url.pathname==='/api/studio/douyin/tasks')return json(res,200,{tasks:db.taskRuns.filter(run=>run.taskKind==='douyin-collect')});
+    if(req.method==='GET' && url.pathname.match(/^\/api\/studio\/douyin\/tasks\/[^/]+$/)){
+      const run=db.taskRuns.find(item=>item.id===url.pathname.split('/')[5]&&item.taskKind==='douyin-collect');return run?json(res,200,run):json(res,404,{error:'collection_task_not_found'});
+    }
+    if(req.method==='POST' && url.pathname.match(/^\/api\/studio\/douyin\/tasks\/[^/]+\/(asr|comments|normalize)$/)){
+      const run=db.taskRuns.find(item=>item.id===url.pathname.split('/')[5]&&item.taskKind==='douyin-collect');const stage=url.pathname.split('/').pop();if(!run)return json(res,404,{error:'collection_task_not_found'});if(run.state!=='succeeded')return json(res,409,{error:'collection_not_succeeded',state:run.state});
+      const stageRun={id:id('run'),jobId:run.id,taskKind:`douyin-${stage}`,state:'failed',startedAt:new Date().toISOString(),cost:0};
+      if(stage==='asr'&&!process.env.DASHSCOPE_API_KEY)stageRun.error='DASHSCOPE_API_KEY 未配置；ASR 未执行，原始作品数据保留';else if(stage==='comments')stageRun.error='评论采集任务适配器尚未接通；原始作品数据保留';else{stageRun.state='succeeded';stageRun.finishedAt=new Date().toISOString();stageRun.detail='字段归一化阶段已完成';}
+      db.taskRuns.unshift(stageRun);await saveDb(db);return json(res,stageRun.state==='succeeded'?200:409,stageRun);
+    }
     if(req.method==='POST' && url.pathname.match(/^\/api\/studio\/douyin\/tasks\/[^/]+\/cancel$/)) {
       const run=db.taskRuns.find(item=>item.id===url.pathname.split('/')[5] && item.taskKind==='douyin-collect');
       if(!run)return json(res,404,{error:'collection_task_not_found'});
@@ -425,6 +457,18 @@ async function handle(req, res) {
       if (!allowed.includes(input.status)) return json(res, 400, { error: 'invalid_job_status' });
       if (['已发布', '已定稿'].includes(job.status) && input.status === '已取消') return json(res, 409, { error: 'published_job_cannot_cancel' });
       const previousStatus = job.status; job.status = input.status; job.statusReason = input.reason || null; job.updatedAt = '刚刚'; db.taskRuns.unshift({ id: id('run'), jobId: job.id, taskKind: 'status-change', state: input.status === '失败' ? 'failed' : input.status === '已取消' ? 'cancelled' : 'succeeded', previousStatus, nextStatus: input.status, reason: input.reason || null, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), cost: 0 }); await saveDb(db); return json(res, 200, job);
+    }
+    if (req.method === 'PATCH' && url.pathname.match(/^\/api\/studio\/jobs\/[^/]+\/archive$/)) {
+      const job = db.jobs.find(item => item.id === decodeURIComponent(url.pathname.split('/')[4])); if (!job) return json(res,404,{error:'job_not_found'});
+      job.archived = true; job.updatedAt = '刚刚'; await saveDb(db); return json(res,200,job);
+    }
+    if (req.method === 'PATCH' && url.pathname.match(/^\/api\/studio\/jobs\/[^/]+\/restore-visibility$/)) {
+      const job = db.jobs.find(item => item.id === decodeURIComponent(url.pathname.split('/')[4])); if (!job) return json(res,404,{error:'job_not_found'});
+      job.archived = false; job.hidden = false; job.updatedAt = '刚刚'; await saveDb(db); return json(res,200,job);
+    }
+    if (req.method === 'PATCH' && url.pathname.match(/^\/api\/studio\/jobs\/[^/]+\/visibility$/)) {
+      const job = db.jobs.find(item => item.id === decodeURIComponent(url.pathname.split('/')[4])); if (!job) return json(res,404,{error:'job_not_found'});
+      const input=await body(req); if(!['visible','hidden'].includes(input.visibility))return json(res,400,{error:'invalid_job_visibility'}); job.hidden=input.visibility==='hidden';job.updatedAt='刚刚';await saveDb(db);return json(res,200,job);
     }
     if (req.method === 'POST' && url.pathname === '/api/studio/manual-ideas') {
       const input = await body(req); const title = String(input.title || '').trim();
