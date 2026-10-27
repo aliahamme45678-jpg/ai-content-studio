@@ -7,6 +7,7 @@ opensource/*/douyin_state.json
 opensource/*/douyin-collector/*.xlsx
 opensource/*/douyin-collector/*.ndjson
 app/data/
+app/node_modules/
 app/logs/
 app/*.log
 app/*-error.log
