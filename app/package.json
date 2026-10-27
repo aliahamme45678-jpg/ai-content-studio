@@ -1,0 +1,7 @@
+{
+  "name": "ai-content-studio-app",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.22.1" },
+  "scripts": { "dev": "node src/server.mjs", "start": "node src/server.mjs", "test": "node --test tests/*.test.mjs" }
+}
