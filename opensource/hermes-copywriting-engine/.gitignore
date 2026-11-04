@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+node_modules/
+logs/
+*.log
+.DS_Store
+Thumbs.db
+data/*
+!data/prompts.json
+!data/system-prompt.txt
+public/fonts/source/

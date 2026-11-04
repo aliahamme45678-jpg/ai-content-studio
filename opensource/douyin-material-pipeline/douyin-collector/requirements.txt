@@ -1,0 +1,18 @@
+# 抖音素材库流水线 · Python 依赖
+# 安装：pip install -r requirements.txt
+# 装完 playwright 还要装浏览器：playwright install chromium
+
+# 浏览器自动化（采集、登录态）
+playwright>=1.40
+
+# HTTP 请求（阿里云 OSS 上传、飞书 webhook 等）
+requests>=2.31
+
+# Excel 导出
+openpyxl>=3.1
+
+# 阿里云百炼（Paraformer 转写 + 评论蒸馏/归并用的 qwen）
+dashscope>=1.20
+
+# Web 版界面（app.py，可选；不用 Web 版可以不装）
+flask>=3.0

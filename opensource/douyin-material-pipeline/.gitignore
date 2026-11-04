@@ -1,0 +1,48 @@
+# ===== 登录态（含真实 cookie，绝不提交）=====
+douyin_state.json
+*_state.json
+*_state_*.json
+
+# ===== 密钥 =====
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ===== 采集产物 / 中间文件 =====
+# 下划线开头的 json 都是脚本产出的临时文件
+_*.json
+douyin_result.json
+douyin_filtered.json
+douyin_videos.xlsx
+comments_*.ndjson
+*_manifest.json
+
+# Excel 产物
+*.xlsx
+
+# 日志
+*.log
+
+# ===== 音频与转写中间件 =====
+_asr_tmp/
+*.wav
+*.mp3
+
+# ===== 归档与临时解压 =====
+_archive/
+_tmp/
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

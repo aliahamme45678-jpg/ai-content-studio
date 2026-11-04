@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>爆款文案引擎</title>
+    <link rel="stylesheet" href="/styles.css?v=66" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="logo-frame"><img src="/logo.jpg" alt="爆款文案引擎" /></div>
+          <div>
+            <div class="brand-title">爆款文案引擎</div>
+            <div class="brand-status"><span id="configText">Hermes 已接入</span><span class="status-dot"></span></div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active" data-view="rewriteView"><span class="icon" data-icon="edit"></span>生成文案</button>
+          <button class="nav-item" data-view="soulView"><span class="icon" data-icon="spark"></span>灵魂系统</button>
+          <button class="nav-item" data-view="topicCopyView"><span class="icon" data-icon="file"></span>话题生文</button>
+           <button class="nav-item" data-view="materialView"><span class="icon" data-icon="plus"></span>添加素材</button>
+           <button class="nav-item" data-view="promptView"><span class="icon" data-icon="bulb"></span>提示词</button>
+        </nav>
+
+        <div class="pro-card">
+          <div>
+            <div class="pro-title">Hermes Pro</div>
+            <div class="pro-desc"><span class="online-dot"></span>在线</div>
+          </div>
+          <div class="pro-icon" data-icon="zap"></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section id="rewriteView" class="view active">
+          <header class="topbar">
+            <div>
+              <h1>生成文案</h1>
+              <p>基于爆款文案生成高质量内容，并提供重构优化建议。</p>
+            </div>
+            <div class="top-actions">
+              <select id="functionType" class="function-select">
+                <option value="rewrite" selected>改写文案</option>
+                <option value="fission">裂变文案</option>
+              </select>
+              <button id="generateBtn" class="blue-btn"><span data-icon="spark"></span>开始生成</button>
+            </div>
+          </header>
+
+          <section class="notice-grid">
+            <div class="notice-card green"><span class="notice-icon" data-icon="check"></span><div><div class="notice-title">任务状态：准备就绪</div><div class="notice-desc">可开始生成高质量文案内容</div></div><span class="notice-tag">就绪</span></div>
+            <div class="notice-card blue"><span class="notice-icon" data-icon="info"></span><div><div class="notice-title">推荐策略：平衡改写 + 结构优化</div><div class="notice-desc">保持核心信息，优化表达与逻辑</div></div><span class="notice-tag">推荐</span></div>
+            <div class="notice-card orange"><span class="notice-icon" data-icon="alert"></span><div><div class="notice-title">创作提示：注意合规与原创</div><div class="notice-desc">避免夸大宣传，确保信息真实可靠</div></div><span class="notice-tag">提醒</span></div>
+          </section>
+
+          <section class="work-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <div class="panel-title-wrap"><span class="panel-icon" data-icon="file"></span><div><div class="panel-title-row"><h2>原始文案</h2><span class="small-badge input">输入</span></div><p>粘贴原始内容，系统将基于此生成优化文案。</p></div></div>
+                <button class="white-btn ghost-only" type="button">复制</button>
+              </div>
+              <div class="textarea-shell text-card"><textarea id="rawContent" placeholder="把原始文案粘贴到这里"></textarea></div>
+              <div class="metrics-footer"><span>字数 <b id="rawCount">0</b></span><span class="divider"></span><span>上限 <b>5000</b></span><label class="soul-rewrite-toggle"><input id="soulRewriteToggle" type="checkbox"><span class="switch-ui"></span><b>灵魂改写</b></label><span class="metric-status">风格 <b>待识别</b></span></div>
+            </section>
+
+            <div class="middle-column">
+              <section class="panel result-panel">
+                <div class="panel-head">
+                  <div class="panel-title-wrap"><span class="panel-icon" data-icon="spark"></span><div><div class="panel-title-row"><h2>生成结果</h2><span id="generateStatus" class="status-badge not-generated">未生成</span></div><p id="modeText">未生成</p></div></div>
+                  <button id="copyBtn" class="white-btn"><span data-icon="copy"></span>复制</button>
+                </div>
+                <div class="textarea-shell result-shell rich-result-shell">
+                  <textarea id="outputText" class="hidden-result-value" placeholder="生成结果会显示在这里，保持不动。"></textarea>
+                  <div id="outputPreview" class="rich-output-preview muted-preview">生成结果会显示在这里，保持不动。</div>
+                </div>
+                <div class="quality-row"><span>查重率 <b id="duplicateRate" class="dup-green">0%</b></span><span>字数 <b id="outputCount">0</b></span></div>
+              </section>
+
+              <section class="rewrite-card">
+                <div class="rewrite-head"><div class="mini-label"><span data-icon="layers"></span>重构信息</div><button id="regenerateSectionBtn" class="white-btn"><span data-icon="refresh"></span>生成重构</button></div>
+                <div class="rewrite-select-row"><label for="sectionType">重构类型</label><select id="sectionType"><option value="opening" selected>重构开头</option><option value="body">重构内容</option><option value="ending">重构结尾</option></select></div>
+              </section>
+
+              <section class="review-card">
+                <div class="review-title">结果评价</div>
+                <div class="review-layout">
+                  <div class="score-list">
+                    <label class="score-line">内容质量 <input class="score-input" type="range" min="1" max="5" value="4" data-score-label="contentScoreText" /><b id="contentScoreText">4</b></label>
+                    <label class="score-line">表达流畅度 <input class="score-input" type="range" min="1" max="5" value="5" data-score-label="flowScoreText" /><b id="flowScoreText">5</b></label>
+                    <label class="score-line">结构逻辑性 <input class="score-input" type="range" min="1" max="5" value="4" data-score-label="logicScoreText" /><b id="logicScoreText">4</b></label>
+                    <label class="score-line">原创度 <input class="score-input" type="range" min="1" max="5" value="5" data-score-label="originScoreText" /><b id="originScoreText">5</b></label>
+                    <label class="score-line">合规性风险 <input class="score-input" type="range" min="1" max="5" value="5" data-score-label="safeScoreText" /><b id="safeScoreText">5</b></label>
+                    <label class="review-rating-label" for="reviewRating">评价等级</label>
+                    <select id="reviewRating"><option value="S">S 很好，可沉淀</option><option value="A" selected>A 可用，小修</option><option value="B">B 跑偏，需要改</option><option value="C">C 失败，记录问题</option></select>
+                  </div>
+                  <div class="problem-shell"><div class="problem-title">评价与建议</div><textarea id="reviewProblem" placeholder="这版的问题写这里。例如：开头好，但正文越界；太 AI；没有保留三步；标题不准。"></textarea><div class="mini-counter"><span id="problemCount">0</span> / 500</div></div>
+                </div>
+                <button id="saveReviewBtn" class="blue-btn compact-btn review-save-btn">保存评价</button>
+                <p id="reviewStatus" class="status-text"></p>
+              </section>
+            </div>
+
+            <section class="panel section-output-panel">
+              <div class="panel-head">
+                <div class="panel-title-wrap"><span class="panel-icon" data-icon="refresh"></span><div><div class="panel-title-row"><h2>重构结果</h2><span id="rewriteStatus" class="status-badge pending">待生成</span></div><p id="sectionModeText">重构结果将显示在此处，仅显示重构部分。</p></div></div>
+                <button id="copySectionBtn" class="white-btn"><span data-icon="copy"></span>复制</button>
+              </div>
+              <div class="textarea-shell result-shell section-result-shell rich-result-shell">
+                <textarea id="sectionOutputText" class="hidden-result-value" placeholder="点击“生成重构”后，结果会显示在这里，不会覆盖左侧生成结果。"></textarea>
+                <div id="sectionOutputPreview" class="rich-output-preview muted-preview">点击“生成重构”后，结果会显示在这里，不会覆盖左侧生成结果。</div>
+              </div>
+              <div class="metrics-footer"><span>字数 <b>--</b></span><span class="divider"></span><span>状态 <b>待生成</b></span><span class="metric-status">风格 <b>待识别</b></span></div>
+            </section>
+          </section>
+
+          <footer class="page-footer"><div>内容由 AI 生成，请结合实际情况核对使用，确保合规与真实性。</div><div>今日已生成 0 / 200 篇</div></footer>
+        </section>
+
+        <section id="soulView" class="view">
+          <header class="topbar soul-topbar">
+            <div>
+              <h1>灵魂系统</h1>
+              <p>训练你的专属写作灵魂，让 AI 成为你，替你去写好每一个文案。</p>
+            </div>
+            <div class="top-actions soul-top-actions">
+              <button class="white-btn" type="button"><span data-icon="info"></span>使用教程</button>
+              <button id="resetSoulBtn" class="blue-btn compact-btn" type="button"><span data-icon="refresh"></span>重置灵魂</button>
+            </div>
+          </header>
+
+          <section class="soul-status-grid">
+            <article class="soul-status-card green"><span class="notice-icon" data-icon="check"></span><div><div class="soul-status-label">当前灵魂状态</div><strong id="soulStateText">未创建</strong><p>专属写作灵魂</p></div></article>
+            <article class="soul-status-card blue"><span class="notice-icon" data-icon="file"></span><div><div class="soul-status-label">训练素材数量</div><strong id="soulMaterialCount">0/9</strong><p id="soulMaterialHint">至少3篇后可提取</p></div></article>
+            <article class="soul-status-card orange"><span class="notice-icon" data-icon="zap"></span><div><div class="soul-status-label">灵魂强度评分</div><strong id="soulScoreText">待提取</strong><p>生成后可优化</p></div></article>
+          </section>
+
+          <section class="soul-layout">
+            <div class="soul-main-column">
+              <section class="soul-card soul-profile-card">
+                <div class="soul-section-head">
+                  <div class="soul-head-title"><span data-icon="file"></span><h2>当前灵魂</h2><span id="soulProfileStatus" class="status-badge not-generated">未创建</span></div>
+                  <button id="extractSoulAgainBtn" class="white-btn" type="button"><span data-icon="refresh"></span>重提灵魂</button>
+                </div>
+                <div class="soul-profile-grid">
+                  <div class="soul-avatar-wrap" id="soulAvatarPicker" title="更换头像">
+                    <img id="soulAvatar" alt="灵魂头像" />
+                    <div class="soul-avatar-mask">更换头像</div>
+                    <input id="soulAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" />
+                  </div>
+                  <div class="soul-profile-fields">
+                    <label class="soul-name-label"><input id="soulNameInput" value="尚未创建灵魂" /></label>
+                    <p id="avatarChangeHint" class="soul-avatar-hint"></p>
+                    <div id="soulTagList" class="soul-tags"></div>
+                  </div>
+                </div>
+                <label class="soul-description-box"><span>灵魂描述</span><textarea id="soulDescriptionInput"></textarea></label>
+                <div id="soulEmptyActions" class="soul-empty-actions"><button id="scrollToSoulMaterials" class="blue-btn compact-btn" type="button">上传训练文案</button><button id="focusPersonaPanel" class="white-btn" type="button">选择内置人格</button></div>
+                <div class="soul-stat-grid" id="soulStatsGrid"></div>
+                <div class="soul-actions"><button id="editSoulBtn" class="white-btn" type="button">编辑灵魂</button><button id="saveSoulBtn" class="blue-btn compact-btn" type="button">保存修改</button></div>
+              </section>
+
+              <section class="soul-card" id="soulMaterialsSection">
+                <div class="soul-section-head">
+                  <div class="soul-head-title"><span data-icon="file"></span><h2>灵魂训练素材（3-9篇）</h2><small id="soulUploadedCount">已上传 0/9 篇</small></div>
+                  <div class="soul-head-actions"><button id="showSoulMaterialFormBtn" class="blue-btn compact-btn" type="button"><span data-icon="plus"></span>上传文案</button></div>
+                </div>
+                <div id="soulMaterialForm" class="soul-material-form">
+                  <textarea id="soulMaterialInput" placeholder="粘贴你自己写过的文案。批量粘贴时，用空行分隔每一篇。"></textarea>
+                  <div class="soul-form-actions"><button id="cancelSoulMaterialBtn" class="white-btn" type="button">取消</button><button id="addSoulMaterialBtn" class="blue-btn compact-btn" type="button">保存</button></div>
+                </div>
+                <div id="soulMaterialEmpty" class="soul-empty-card"><h3>还没有训练素材</h3><p>上传你自己写过的文案，AI 会从句式、节奏、标点、语气和结构中提取你的写作灵魂。</p><button id="addFirstSoulMaterialBtn" class="blue-btn compact-btn" type="button">+ 添加第一篇文案</button></div>
+                <div id="soulMaterialList" class="soul-material-list"></div>
+              </section>
+            </div>
+
+            <aside class="soul-side-column">
+              <section class="soul-card persona-card" id="personaPanel">
+                <div class="soul-section-head"><div class="soul-head-title"><span data-icon="spark"></span><h2>切换灵魂</h2></div><select id="personaSelect" class="persona-select"><option>我的灵魂</option><option>马斯克风格</option><option>鲁迅风格</option><option>余华风格</option><option>罗永浩风格</option></select></div>
+                <input id="personaSearchInput" class="persona-search" placeholder="搜索名人名称" />
+                <p id="personaNotice" class="persona-notice">即使没有创建自己的灵魂，也可以使用系统内置人格。</p>
+                <div id="personaList" class="persona-list"></div>
+                <button class="white-btn persona-create-btn" type="button"><span data-icon="plus"></span>创建自定义灵魂</button>
+              </section>
+
+              <section class="soul-card"><h2>如何训练你的灵魂？</h2><ol class="soul-guide"><li>上传你自己写的文案（最少 3 篇，最大 9 篇）</li><li>点击 AI 提取灵魂</li><li>查看并编辑灵魂特征</li><li>开始使用你的灵魂</li></ol><button id="extractSoulBtn" class="blue-btn soul-full-btn" type="button">AI 提取灵魂</button><p id="soulExtractTip" class="soul-extract-tip">至少上传3篇文案后才能提取灵魂</p></section>
+
+              <section class="soul-card"><h2>消耗说明</h2><div class="soul-cost-list"><p><span>AI提取灵魂</span><b>消耗 0 点数</b></p><p><span>重新提取灵魂</span><b>消耗 0 点数</b></p><p><span>普通编辑灵魂</span><b>不消耗点数</b></p></div></section>
+            </aside>
+          </section>
+        </section>
+
+        <section id="topicCopyView" class="view">
+          <header class="topbar">
+            <div><h1>话题生文</h1><p>输入话题和参数，从本地素材库检索内容与写法，再生成短视频口播文案。</p></div>
+            <button id="topicGenerateBtn" class="blue-btn"><span data-icon="spark"></span>开始生成</button>
+          </header>
+          <section class="notice-grid">
+            <div class="notice-card green"><span class="notice-icon" data-icon="check"></span><div><div class="notice-title">任务状态：准备就绪</div><div class="notice-desc">请输入话题并设置生成条件</div></div><span class="notice-tag">就绪</span></div>
+            <div class="notice-card blue"><span class="notice-icon" data-icon="spark"></span><div><div class="notice-title">生成策略：话题 + 灵魂风格 + 黄金三秒</div><div class="notice-desc">同一素材库内拆分内容素材和结构素材</div></div><span class="notice-tag">推荐</span></div>
+            <div class="notice-card orange"><span class="notice-icon" data-icon="alert"></span><div><div class="notice-title">创作提示：注意合规与原创</div><div class="notice-desc">没有素材支撑时不会强行编造</div></div><span class="notice-tag">提醒</span></div>
+          </section>
+          <section class="topic-copy-grid">
+            <section class="panel topic-form-panel">
+              <div class="panel-head compact"><div class="panel-title-wrap"><span class="panel-icon" data-icon="spark"></span><div><h2>生成条件</h2><p>参数会进入素材检索和最终文案生成。</p></div></div></div>
+              <div class="topic-form">
+                <label><b>1. 输入对应话题</b><textarea id="topicInput" maxlength="200" placeholder="请输入你想生成文案的话题或主题，例如：主图优化 / 选品 / 定价"></textarea><span id="topicCount">0/200</span></label>
+                <label><b>2. 条件</b><textarea id="topicConditions" placeholder="例如：面向 TikTok Shop 新手卖家，强调商品卡点击率，不讲达人，不要讲标题"></textarea></label>
+                <label><b>3. 字数</b><input id="topicTargetWords" type="number" min="300" max="1500" value="900"><div class="quick-row"><button type="button" data-topic-words="600">600</button><button type="button" data-topic-words="800">800</button><button type="button" data-topic-words="1000">1000</button><button type="button" data-topic-words="1200">1200</button><button type="button" data-topic-words="1500">1500</button></div></label>
+                <label><b>4. 文案风格</b><select id="topicCopyStyle"><option>清醒实战型</option><option>犀利避坑型</option><option>老板视角型</option><option>新手听得懂型</option><option>冷静拆解型</option><option>口语成交型</option></select></label>
+                <label><b>5. 黄金三秒类型</b><select id="topicHookType"><option>扎心共情型</option><option>结果反差型</option><option>命令指令型</option><option>悬念好奇型</option><option>数据直击型</option><option>身份立场型</option></select></label>
+                <label><b>6. 文案类型</b><select id="topicCopyType"><option>思维型</option><option>实战型</option></select></label>
+                <label><b>7. 灵魂风格</b><select id="topicSoulStyle"><option value="none">不使用灵魂</option><option value="personal">个人灵魂</option><option value="鲁迅风格">鲁迅风格</option><option value="马斯克风格">马斯克风格</option><option value="余华风格">余华风格</option><option value="罗永浩风格">罗永浩风格</option></select></label>
+                <label class="switch-line"><input id="topicLeadGen" type="checkbox"><span>是否引流</span></label>
+                <div id="topicLeadGenFields" class="topic-lead-fields">
+                  <label><b>引流目的</b><select id="topicLeadGoal"><option>引导私信</option><option>引导评论关键词</option><option>引导领取资料</option><option>引导试用工具</option><option>引导查看案例</option><option>自定义</option></select></label>
+                  <label><b>引流关键词</b><input id="topicLeadKeyword" placeholder="选品 / 主图 / 标题 / 表格 / 插件 / 资料"></label>
+                </div>
+                <label class="switch-line"><input id="topicDebug" type="checkbox"><span>debug 模式</span></label>
+                <button id="topicGenerateBtnBottom" class="blue-btn wide" type="button">生成文案</button>
+              </div>
+            </section>
+            <section class="panel topic-result-panel">
+              <div class="panel-head"><div class="panel-title-wrap"><span class="panel-icon" data-icon="spark"></span><div><div class="panel-title-row"><h2>生成结果</h2><span id="topicStatus" class="status-badge not-generated">未生成</span></div><p id="topicMeta">等待输入参数</p></div></div><button id="topicCopyBtn" class="white-btn"><span data-icon="copy"></span>复制结果</button></div>
+              <div class="topic-result-box"><pre id="topicResultText">输入话题并点击生成后，文案会显示在这里</pre></div>
+              <div class="topic-stats"><span>目标字数 <b id="topicTargetStat">900</b></span><span>实际字数 <b id="topicActualStat">0</b></span><span>文案类型 <b id="topicCopyTypeStat">思维型</b></span><span>黄金三秒 <b id="topicHookStat">扎心共情型</b></span><span>灵魂 <b id="topicSoulStat">不使用灵魂</b></span></div>
+              <section id="topicDebugBox" class="topic-debug-box" hidden>
+                <h3>Debug 信息</h3>
+                <div class="topic-debug-columns"><div><h4>MATERIAL_JSON</h4><pre id="topicMaterialJson"></pre></div><div><h4>Prompt A 原始输出</h4><pre id="topicStepARaw"></pre></div></div>
+                <div class="topic-debug-columns"><div><h4>同行业内容卡</h4><pre id="topicIndustryCards"></pre></div><div><h4>跨行业结构卡</h4><pre id="topicStyleCards"></pre></div></div>
+              </section>
+            </section>
+          </section>
+        </section>
+
+        <section id="materialView" class="view">
+          <header class="topbar material-topbar">
+            <div><h1>素材管理</h1><p>支持自定义添加素材、文案评级、分类管理与素材库筛选。</p></div>
+            <div class="top-actions"><button class="white-btn material-import-btn" type="button"><span data-icon="import"></span>批量导入</button><button id="materialGenerateBtn" class="blue-btn" type="button"><span data-icon="plus"></span>生成素材</button></div>
+          </header>
+
+          <section class="material-notices">
+            <div class="notice-card green"><span class="notice-icon" data-icon="check"></span><div><div class="notice-title">当前状态：可新增与管理素材</div><div class="notice-desc">你可以自由新增、编辑与分类管理素材内容</div></div><span id="materialTotalBadge" class="notice-tag">0 条</span></div>
+            <div class="notice-card blue"><span class="notice-icon" data-icon="info"></span><div><div class="notice-title">推荐方法：先导入长素材，再做标签化复用</div><div class="notice-desc">建议优先沉淀高质量文案，再通过筛选快速调用</div></div><span class="notice-tag">查看指南</span></div>
+            <div class="notice-card orange"><span class="notice-icon" data-icon="alert"></span><div><div class="notice-title">管理提示：请保持行业、评级、类型标签规范</div><div class="notice-desc">规范标签有助于提升检索准确性与团队协作效率</div></div><span class="notice-tag">去规范</span></div>
+          </section>
+
+          <section class="material-panel">
+            <div class="material-tabs"><button class="material-tab active" data-material-tab="materialAddPane">自定义添加</button><button class="material-tab" data-material-tab="materialLibraryPane">素材库展示</button></div>
+
+            <div id="materialAddPane" class="material-pane active">
+              <section class="material-add-grid">
+                <div class="material-box">
+                  <div class="material-box-head"><div class="material-box-title"><span data-icon="file"></span>输入文案</div><button id="clearMaterialBtn" class="white-btn" type="button">清空</button></div>
+                  <textarea id="materialCopy" class="material-copy-input" placeholder="粘贴或输入需要沉淀进素材库的文案..."></textarea>
+                  <div class="material-copy-meta"><span>字数 <b id="materialWordCount">0</b></span><span>句子 <b id="materialSentenceCount">0</b></span><span>风格检测 <b>稳定</b></span></div>
+                </div>
+
+                <div class="material-box">
+                  <div class="material-box-title"><span data-icon="layers"></span>素材属性设置</div>
+                  <input id="materialPlatform" type="hidden" value="TikTok" />
+                  <input id="materialNiche" type="hidden" value="跨境" />
+                  <input id="materialCopyType" type="hidden" value="干货类型" />
+                  <input id="materialIndustryType" type="hidden" value="同行业文案" />
+                  <select id="materialRating" class="hidden-select"><option value="S" selected>S级</option><option value="A">A级</option><option value="B">B级</option></select>
+                  <div class="material-setting-grid">
+                    <label>行业</label><div class="material-options" data-target="materialNiche"><button type="button" class="material-option active" data-value="跨境">跨境</button><button type="button" class="material-option" data-value="AI">AI</button></div>
+                    <label>文案评级</label><div class="material-options" data-target="materialRating"><button type="button" class="material-option active" data-value="S">S级</button><button type="button" class="material-option" data-value="A">A级</button><button type="button" class="material-option" data-value="B">B级</button></div>
+                    <label>文案类型</label><div class="material-options" data-target="materialCopyType"><button type="button" class="material-option" data-value="低粉爆款">低粉爆款</button><button type="button" class="material-option" data-value="爆款">爆款</button><button type="button" class="material-option active" data-value="干货类型">干货类型</button><button type="button" class="material-option" data-value="思维类型">思维类型</button></div>
+                    <label>文案行业类型</label><div class="material-options" data-target="materialIndustryType"><button type="button" class="material-option active" data-value="同行业文案">同行业文案</button><button type="button" class="material-option" data-value="跨行业文案">跨行业文案</button></div>
+                  </div>
+                  <aside class="material-summary-card"><div><span>推荐评分：</span><b id="materialSummaryRating">S级</b></div><div><span>适用行业：</span><b id="materialSummaryIndustry">跨境</b></div><div><span>内容类型：</span><b id="materialSummaryType">干货类型</b></div><div><span>行业类型：</span><b id="materialSummaryIndustryType">同行业文案</b></div></aside>
+                  <div class="material-submit-row"><button id="saveMaterialBtn" class="blue-btn" type="button">提交并入库</button></div>
+                </div>
+              </section>
+              <p id="materialStatus" class="status-text"></p>
+            </div>
+
+            <div id="materialLibraryPane" class="material-pane material-library-page">
+              <section class="material-library-filter-card">
+                <div class="material-library-filter-grid">
+                  <div class="material-search-group"><div class="filter-title">关键词搜索</div><div class="material-search-wrap"><span data-icon="search"></span><input id="materialSearchInput" class="material-search" placeholder="搜索素材内容、关键词..." /><button id="materialSearchClear" class="material-search-clear" type="button">×</button></div></div>
+                  <div class="filter-group"><div class="filter-title">所属行业</div><div class="filter-pills" data-filter-target="materialFilterIndustry"><button type="button" class="filter-pill active" data-value="">全部</button><button type="button" class="filter-pill" data-value="跨境">跨境</button><button type="button" class="filter-pill" data-value="AI">AI</button></div></div>
+                  <div class="filter-group"><div class="filter-title">质量评级</div><div class="filter-pills" data-filter-target="materialFilterRating"><button type="button" class="filter-pill active" data-value="">全部</button><button type="button" class="filter-pill" data-value="S">S级</button><button type="button" class="filter-pill" data-value="A">A级</button><button type="button" class="filter-pill" data-value="B">B级</button></div></div>
+                  <div class="filter-group wide"><div class="filter-title">文案类型</div><div class="filter-pills" data-filter-target="materialFilterType"><button type="button" class="filter-pill active" data-value="">全部</button><button type="button" class="filter-pill" data-value="低粉爆款">低粉爆款</button><button type="button" class="filter-pill" data-value="爆款">爆款</button><button type="button" class="filter-pill" data-value="干货类型">干货类型</button><button type="button" class="filter-pill" data-value="思维类型">思维类型</button></div></div>
+                  <div class="filter-group"><div class="filter-title">行业类型</div><div class="filter-pills" data-filter-target="materialFilterIndustryType"><button type="button" class="filter-pill active" data-value="">全部</button><button type="button" class="filter-pill" data-value="同行业文案">同行业文案</button><button type="button" class="filter-pill" data-value="跨行业文案">跨行业文案</button></div></div>
+                  <div class="filter-actions"><button id="materialFilterBtn" class="filter-main-btn" type="button"><span data-icon="filter"></span>筛选</button><button id="materialResetBtn" class="filter-reset-btn" type="button"><span data-icon="refresh"></span>重置</button></div>
+                </div>
+                <select id="materialFilterIndustry" class="hidden-select"><option value=""></option><option value="跨境"></option><option value="AI"></option></select>
+                <select id="materialFilterRating" class="hidden-select"><option value=""></option><option value="S"></option><option value="A"></option><option value="B"></option></select>
+                <select id="materialFilterType" class="hidden-select"><option value=""></option><option value="低粉爆款"></option><option value="爆款"></option><option value="干货类型"></option><option value="思维类型"></option></select>
+                <select id="materialFilterIndustryType" class="hidden-select"><option value=""></option><option value="同行业文案"></option><option value="跨行业文案"></option></select>
+              </section>
+
+              <section class="material-library-toolbar"><div>共找到 <b id="materialResultCount">0</b> 条素材</div><div class="library-toolbar-actions"><select class="library-sort"><option>更新时间</option><option>字数最多</option><option>评级最高</option></select><button class="view-toggle active" type="button"><span data-icon="grid"></span></button><button class="view-toggle" type="button"><span data-icon="list"></span></button></div></section>
+              <div id="materialLibraryGrid" class="material-library-grid rich"></div>
+              <div id="materialEmptyState" class="material-empty-state">暂无匹配素材</div>
+              <footer class="material-pagination"></footer>
+            </div>
+          </section>
+        </section>
+
+        <section id="promptView" class="view">
+          <header class="topbar"><div><h1>提示词</h1><p>不同功能使用不同提示词，保存后下一次立刻生效。</p></div><button id="savePromptBtn" class="blue-btn">保存提示词</button></header>
+          <section class="panel full-panel prompt-panel">
+            <div class="prompt-tabs">
+              <button class="prompt-tab active" data-prompt-tab="rewritePromptGroup">改写系统</button>
+              <button class="prompt-tab" data-prompt-tab="sectionPromptGroup">重构系统</button>
+              <button class="prompt-tab" data-prompt-tab="soulPromptGroup">灵魂系统</button>
+              <button class="prompt-tab" data-prompt-tab="topicPromptGroup">话题生文</button>
+              <button class="prompt-tab" data-prompt-tab="fissionPromptGroup">裂变文案</button>
+            </div>
+            <div id="rewritePromptGroup" class="prompt-group active">
+              <select id="rewritePromptType" class="prompt-select" data-prompt-select>
+                <option value="rewrite" selected>改写文案提示词</option>
+              </select>
+            </div>
+            <div id="sectionPromptGroup" class="prompt-group">
+              <select class="prompt-select" data-prompt-select>
+                <option value="rewriteOpening">重构开头提示词</option>
+                <option value="rewriteBody">重构内容提示词</option>
+                <option value="rewriteEnding">重构结尾提示词</option>
+              </select>
+            </div>
+            <div id="soulPromptGroup" class="prompt-group">
+              <select class="prompt-select" data-prompt-select>
+                <option value="soulExtract">AI 提取灵魂提示词</option>
+                <option value="soulRewrite">灵魂重塑提示词</option>
+                <option value="builtInSoulRules">内置人物灵魂规则</option>
+              </select>
+            </div>
+            <div id="topicPromptGroup" class="prompt-group">
+              <select class="prompt-select" data-prompt-select>
+                <option value="parameter_dual_material_retriever">话题生文 Prompt A：素材检索整理</option>
+                <option value="parameter_short_video_copywriter">话题生文 Prompt B：口播文案生成</option>
+                <option value="topic_output_repair">话题生文：输出修复提示词</option>
+              </select>
+            </div>
+            <div id="fissionPromptGroup" class="prompt-group">
+              <select class="prompt-select" data-prompt-select>
+                <option value="fission">裂变文案提示词</option>
+              </select>
+            </div>
+            <div class="textarea-shell large"><textarea id="promptText" placeholder="正在读取提示词"></textarea></div>
+            <p id="promptStatus" class="status-text"></p>
+          </section>
+        </section>
+
+
+      </main>
+    </div>
+
+    <div id="materialEditModal" class="material-modal" aria-hidden="true">
+      <div class="material-modal-card">
+        <div class="material-modal-head"><h2>编辑素材</h2><button id="closeMaterialEditBtn" type="button"><span data-icon="close"></span></button></div>
+        <textarea id="editMaterialCopy" class="material-copy-input"></textarea>
+        <div class="material-modal-grid">
+          <label>行业<select id="editMaterialIndustry"><option>跨境</option><option>AI</option></select></label>
+          <label>评级<select id="editMaterialRating"><option value="S">S级</option><option value="A">A级</option><option value="B">B级</option></select></label>
+          <label>类型<select id="editMaterialType"><option>低粉爆款</option><option>爆款</option><option>干货类型</option><option>思维类型</option></select></label>
+          <label>行业类型<select id="editMaterialIndustryType"><option>同行业文案</option><option>跨行业文案</option></select></label>
+        </div>
+        <button id="saveMaterialEditBtn" class="blue-btn" type="button">保存修改</button>
+      </div>
+    </div>
+
+    <script type="module" src="/app.js?v=66"></script>
+    <script type="module" src="/soul-system.js?v=59"></script>
+  </body>
+</html>

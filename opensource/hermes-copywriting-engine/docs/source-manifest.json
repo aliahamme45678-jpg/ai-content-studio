@@ -1,0 +1,86 @@
+{
+  "snapshotDate": "2026-10-27",
+  "source": "D:/360MoveData/Users/Administrator/Documents/New project",
+  "unchangedFiles": [
+    {
+      "path": "server.js",
+      "bytes": 138540,
+      "sha256": "098f3b914399495d4878a36568c1f7d3831f829c5c9818103427faa6348e9a6d"
+    },
+    {
+      "path": "public/index.html",
+      "bytes": 36464,
+      "sha256": "e8acbeb1649e7c9ec87f61ea3515ab276435b0ec22a9e8c4589a7593aac7c8b4"
+    },
+    {
+      "path": "public/app.js",
+      "bytes": 37552,
+      "sha256": "a8273d18a9b8afe090d447c3c53ebd526b91ed91dc91a8832ef432b824bfcb57"
+    },
+    {
+      "path": "public/styles.css",
+      "bytes": 49911,
+      "sha256": "02e802593b5a6b918cf68b6b5573dab6c81a7a16ca02c2a0cc7f77a38db22e07"
+    },
+    {
+      "path": "public/soul-system.js",
+      "bytes": 20430,
+      "sha256": "bab3232bf538d8278c846cdaee3f4f82431d470277a18821c68aefda3e17db38"
+    },
+    {
+      "path": "public/logo.jpg",
+      "bytes": 36742,
+      "sha256": "16b0f57e91c6b4c20b3d9a2d6d1df417b2e6bfca9e4a44eec67e92ea355f0b6e"
+    },
+    {
+      "path": "public/fonts/AlibabaPuHuiTi-3-55-Regular.woff2",
+      "bytes": 5256740,
+      "sha256": "1cb8418d80b01ec08cb6f2d64b6244aaaf1bb80dc35491b66ddba16c5e24f444"
+    },
+    {
+      "path": "public/fonts/AlibabaPuHuiTi-3-65-Medium.woff2",
+      "bytes": 5469328,
+      "sha256": "628a0d5be684bae0e7a8e3ad15b7c4f623fd15b3375082624f778326e343467a"
+    },
+    {
+      "path": "public/fonts/AlibabaPuHuiTi-3-85-Bold.woff2",
+      "bytes": 5560840,
+      "sha256": "5947ecd5447c34865d036740f38afbf4364b3cf7bb3d399aba0f169b59c6ec35"
+    },
+    {
+      "path": "public/personas/luo-yonghao.png",
+      "bytes": 887009,
+      "sha256": "25a8b8dbe0ba6b76983df473898936ced47fd5a2b082ac0a6b2dc121f8204803"
+    },
+    {
+      "path": "public/personas/luxun.png",
+      "bytes": 180210,
+      "sha256": "b5305ebd857b390b47894a55a29d5bdc138d762466b9c6ce9244d51db9c437d5"
+    },
+    {
+      "path": "public/personas/musk.jpg",
+      "bytes": 207765,
+      "sha256": "67900a4b0326153040e7fd4020ea649f0ad508f9743550037d159cc42f354256"
+    },
+    {
+      "path": "public/personas/yu-hua.png",
+      "bytes": 213706,
+      "sha256": "9c24a3579838f8f14b037b978920cdd64adb5937bc0150494e6f5ee2ad87f256"
+    },
+    {
+      "path": "data/prompts.json",
+      "bytes": 58449,
+      "sha256": "1b922210f244ce6c3c46faeb7c6a90b10273271757ddca8376762ee389636e0e"
+    },
+    {
+      "path": "data/system-prompt.txt",
+      "bytes": 5687,
+      "sha256": "e7ebedb118b3469c61b0d6e2297380f1211d0fac740ba57454fbc4a3a50fe690"
+    }
+  ],
+  "notes": [
+    "All listed runtime files and prompt configurations are byte-identical to the recovered local application.",
+    "package.json retains only application startup and syntax checking. Unrelated automation scripts and their development dependencies are excluded.",
+    "External memory and material libraries are not included. Configure their paths in .env."
+  ]
+}

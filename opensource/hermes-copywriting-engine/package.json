@@ -1,0 +1,14 @@
+{
+  "name": "tk-rewrite-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hermes 短视频文案生成器 / 爆款文案引擎",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/soul-system.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

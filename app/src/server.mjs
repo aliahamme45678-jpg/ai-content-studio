@@ -102,7 +102,7 @@ async function initializeDb() {
   await mkdir(dataDir, { recursive: true });
   aihotDbUrl=await intelligenceDatabaseUrl(root,aihotDbUrl);
   await ensureDefaultModelProfile(dataDir);await loadModelProfiles(dataDir);
-  const collectionConfig=join(dataDir,'douyin.env');if(existsSync(collectionConfig)){for(const line of (await readFile(collectionConfig,'utf8')).split(/\r?\n/)){const match=line.match(/^(DASHSCOPE_API_KEY|DOUYIN_STATE_PATH)=(.*)$/);if(match&&!process.env[match[1]])process.env[match[1]]=match[2];}}
+  for(const collectionConfig of [join(dataDir,'douyin.env'),join(root,'../../config/asr.env')])if(existsSync(collectionConfig)){for(const line of (await readFile(collectionConfig,'utf8')).split(/\r?\n/)){const match=line.match(/^(DASHSCOPE_API_KEY|DOUYIN_STATE_PATH)=(.*)$/);if(match&&!process.env[match[1]])process.env[match[1]]=match[2];}}
   if (!existsSync(dataFile)) await writeFile(dataFile, JSON.stringify({...seed,sources:[],documents:[],jobs:[]}, null, 2), 'utf8');
   const db = JSON.parse(await readFile(dataFile, 'utf8'));
   db.versions ||= [];

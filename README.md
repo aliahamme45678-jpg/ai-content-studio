@@ -1,5 +1,17 @@
 # AI Content Studio
 
+## SPX 完整源码
+
+当前完整集成版本位于 `codex/spx-ryxo-desktop-ui` 分支：
+
+```bash
+git clone --branch codex/spx-ryxo-desktop-ui https://github.com/aliahamme45678-jpg/ai-content-studio.git
+```
+
+采集、情报、Hermes 写作引擎、dont 审核技能及作者分析方法源码已统一内置于 `opensource/`，无需另外克隆仓库或初始化 submodule。来源版本与许可证说明见 [内置依赖](opensource/README.md)。仍需安装 Node/Python/PostgreSQL 等运行环境和各项目依赖，并提供实际部署配置；源码内置不代表 node_modules、数据库和浏览器登录态一起上传。
+
+按项目所有者明确授权，ASR Key 单独保存在 `config/asr.env`，供 SPX 后端读取；环境变量及本机采集设置优先。写作 Key、飞书凭据、Cookie 和工作台私有数据不包含在仓库中。
+
 本机私有内容工作台，围绕采集素材、阅读情报、写文案三项工作。Studio 是统一入口；AIHOT 提供情报，抖音流水线提供素材，Hermes 作为写作引擎。原始要求保存在 [PRD](docs/PRD-v1.1.md) 和 [三仓整合方案](docs/integration-plan.md)。
 
 ## 使用

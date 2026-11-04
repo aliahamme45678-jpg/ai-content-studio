@@ -1,0 +1,48 @@
+{
+  "importedAt": "2026-11-04",
+  "format": "vendored-source-snapshot",
+  "sources": [
+    {
+      "directory": "opensource/AIHOT",
+      "repository": "https://github.com/KKKKhazix/AIHOT.git",
+      "commit": "ce8348477438cce2b417c1403290a511c812a7c5",
+      "localChanges": [
+        "M packages/backend/src/jobs/content.ts"
+      ],
+      "files": 671,
+      "bytes": 13557633
+    },
+    {
+      "directory": "opensource/Chzhinan",
+      "repository": "https://github.com/aliahamme45678-jpg/Chzhinan.git",
+      "commit": "f3f5d23cb8cfa33da57c1f536ccb9a1cb1ee8a41",
+      "localChanges": [],
+      "files": 18,
+      "bytes": 55283
+    },
+    {
+      "directory": "opensource/dbskill",
+      "repository": "https://github.com/dontbesilent2025/dbskill.git",
+      "commit": "707725c8ecdffa24f5b7fba75b9bbaa89e068d75",
+      "localChanges": [],
+      "files": 259,
+      "bytes": 20228209
+    },
+    {
+      "directory": "opensource/douyin-material-pipeline",
+      "repository": "https://github.com/aliahamme45678-jpg/douyin-material-pipeline.git",
+      "commit": "935fb03d0d3833f32771c2f428d0e840eef475bc",
+      "localChanges": [],
+      "files": 54,
+      "bytes": 441544
+    },
+    {
+      "directory": "opensource/hermes-copywriting-engine",
+      "repository": "https://github.com/aliahamme45678-jpg/hermes-copywriting-engine.git",
+      "commit": "bb54730264c2f539447102f8f75e2ab8c057db30",
+      "localChanges": [],
+      "files": 23,
+      "bytes": 18173739
+    }
+  ]
+}
