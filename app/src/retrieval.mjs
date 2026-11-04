@@ -1,5 +1,5 @@
 const defaultRoles = ['事实库', '写作案例库', '蒸馏方法库', '规则与记忆库'];
-export function retrieveKnowledge(db, query, roles = defaultRoles) {
+export function retrieveKnowledge(db, query, roles = defaultRoles, options = {}) {
   const allowed = new Set(roles);
   const text = String(query || '').toLowerCase();
   const words = text.match(/[a-z0-9][a-z0-9_-]+/g) || [];
@@ -12,10 +12,12 @@ export function retrieveKnowledge(db, query, roles = defaultRoles) {
     doc.content.split(/\n\s*\n/).filter(part => part.trim()).forEach((paragraph, index) => {
       const content = paragraph.toLowerCase(); const title = String(doc.name || '').toLowerCase();
       const relevance = terms.reduce((sum, term) => sum + (content.includes(term) ? 2 : 0) + (title.includes(term) ? 1 : 0), 0);
-      if (relevance) chunks.push({ documentId: doc.id, chunkId: `${doc.id}:paragraph:${index + 1}`, locator: `段落 ${index + 1}`, name: doc.name, type: doc.type, version: doc.version || 1, source: doc.source, url: doc.url || null, hash: doc.hash || null, relevance, excerpt: paragraph.trim().slice(0, 1600) });
+      const required = options.includeRules && doc.type === '规则与记忆库';
+      if (relevance || required || options.includeSelected) chunks.push({ documentId: doc.id, chunkId: `${doc.id}:paragraph:${index + 1}`, locator: `段落 ${index + 1}`, name: doc.name, type: doc.type, version: doc.version || 1, source: doc.source, url: doc.url || null, hash: doc.hash || null, factRole: doc.factRole || null, licenseScope: doc.licenseScope || null, relevance, required, excerpt: paragraph.trim().slice(0, 1600) });
     });
   }
-  return chunks.sort((a,b) => b.relevance - a.relevance || a.chunkId.localeCompare(b.chunkId)).slice(0,6);
+  const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : options.includeSelected ? 24 : 6;
+  return chunks.sort((a,b) => Number(b.required) - Number(a.required) || b.relevance - a.relevance || a.chunkId.localeCompare(b.chunkId)).slice(0, limit);
 }
 export function sourceSnapshot(job, db) {
   if (Array.isArray(job.sourceSnapshot)) return job.sourceSnapshot;

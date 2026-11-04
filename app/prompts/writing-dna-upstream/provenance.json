@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/larashero3-dotcom/writing-dna-skill",
+  "commit": "9e780d0ea9fda9937149148a3103f181eed43326",
+  "files": {
+    "SKILL.md": "6edb2cca7e938d301c79b6605189d7dd7243fefe30e91de31b5cd9ab5df4b6d7",
+    "LICENSE": "1126322e2cc8d165adc4c792eeb195717de2bcc7b39be1ce77959d78e87ef685",
+    "templates/author-corpus/zh/语言DNA.md": "20fcd0bb7350ff8cd5260d0fa8b965bf320e577fa62871a3166db24109a85186",
+    "templates/author-corpus/zh/文章结构模板.md": "84eee8b355261ef0cffb54d73d5ef00e14da68b6292c0b7ce10477816f033d16",
+    "templates/author-corpus/zh/写作视角与认知框架.md": "88520683916a2efb14f4187514d0886d99042d4ad2cb4c9e03f77fdf10529edf",
+    "templates/author-corpus/zh/视觉风格指南.md": "7de68631cdb2fe3718e5d0122cdf5e3ffc6953c5e03b9d951fa506e3356eb446",
+    "templates/author-corpus/zh/Writing-DNA.md": "b1043c1ca187e5422184d987d15d4d1362dd4216c1f1ea4bf1212bd55bac4cd9",
+    "skills/lieflat-less-ai-tone/SKILL.md": "16661f5c97fc856d21d7bd0b33471e7f0ca20fbc13c4d5136ef5288680bea7d1"
+  }
+}

@@ -7,5 +7,12 @@ test('collection accepts only bounded Douyin HTTPS links without shell arguments
 });
 test('collection request carries filters and selected fields',()=>{
  const result=collectionRequest({mode:'links',urls:'https://www.douyin.com/video/1',minPlayCount:1000,minDigg:20,fields:['title','playCount','diggCount']});
- assert.deepEqual(result.filters,{minPlayCount:1000,minDigg:20,minCollect:0,minComment:0});assert.deepEqual(result.fields,['title','playCount','diggCount']);
+ assert.deepEqual(result.filters,{minPlayCount:1000,minDigg:20,minCollect:0,minComment:0,minShare:0});assert.deepEqual(result.fields,['title','playCount','diggCount']);
+});
+
+test('account history preserves ordinary videos and only enables full pagination for profile analysis',()=>{
+ const request=collectionRequest({mode:'profile',urls:'https://www.douyin.com/user/test',purpose:'account-analysis',collectAll:true});assert.equal(request.collectAll,true);assert.equal(request.purpose,'account-analysis');
+ assert.throws(()=>collectionRequest({mode:'profile',urls:'https://www.douyin.com/user/test',collectAll:true}));
+ const filtered=collectionRequest({mode:'profile',urls:'https://www.douyin.com/user/test',purpose:'account-analysis',filters:{minDigg:1000,maxDigg:5000}});assert.equal(filtered.filters.minDigg,1000);assert.equal(filtered.filters.maxDigg,5000);
+ assert.throws(()=>collectionRequest({mode:'profile',urls:'https://www.douyin.com/user/test',filters:{minDigg:1000,maxDigg:100}}));
 });

@@ -1,0 +1,4 @@
+// Read-only model-service connectivity probe. Never submits a generation.
+const started=Date.now();const base=process.env.LLM_BASE_URL;
+try{const url=new URL(base.replace(/\/$/,'')+'/models');const response=await fetch(url,{headers:{authorization:`Bearer ${process.env.LLM_API_KEY}`},signal:AbortSignal.timeout(20000)});let payload;try{payload=await response.json();}catch{}console.log(JSON.stringify({host:url.hostname,status:response.status,elapsedMs:Date.now()-started,modelConfigured:process.env.LLM_MODEL,listedModels:payload?.data?.length||null,configuredModelListed:payload?.data?.some(m=>m.id===process.env.LLM_MODEL)??null}));}
+catch(error){console.log(JSON.stringify({host:base?new URL(base).hostname:null,error:error.message,code:error.cause?.code||error.code||null,cause:error.cause?.message||null,elapsedMs:Date.now()-started}));process.exitCode=1;}

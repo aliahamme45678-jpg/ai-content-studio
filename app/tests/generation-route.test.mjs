@@ -19,6 +19,7 @@ test('generation retries bad output once, reuses good cache and preserves draft 
     if (holdResponse) { responseStarted?.(); await new Promise(resolve => { releaseResponse = resolve; }); }
     if (dropConnection) { req.socket.destroy(); return; }
     res.setHeader('content-type', 'application/json');
+    if(String(latestRequest?.messages?.[0]?.content||'').includes('成稿校验员')) return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({passed:true,hookType:'',checks:{facts:true,type:true,continuity:true,style:true,originality:true},issues:[]})}}]}));
     res.end(JSON.stringify({ choices: [{message:{content: rejectOutput || calls === 1 ? '{"body":"..."}' : '示例 {"body":"..."}\n' + JSON.stringify({body,corePoint:'测试',needsVerification:[]}) + '\n解释'}}], usage: {total_tokens: 123} }));
   });
   await new Promise(resolve => fake.listen(0, '127.0.0.1', resolve));
@@ -26,7 +27,7 @@ test('generation retries bad output once, reuses good cache and preserves draft 
   await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
   const port = reservation.address().port;
   await new Promise(resolve => reservation.close(resolve));
-  const child = spawn(process.execPath, ['src/server.mjs'], {cwd:new URL('..', import.meta.url), env:{...process.env, PORT:String(port), HOST:'127.0.0.1', STUDIO_TOKEN:'', STUDIO_DATA_DIR:dir, MODEL_CALLS_ENABLED:'true', LLM_BASE_URL:`http://127.0.0.1:${fake.address().port}`, LLM_API_KEY:'local-fixture', LLM_MODEL:'fixture'}, stdio:['ignore','pipe','pipe']});
+  const child = spawn(process.execPath, ['src/server.mjs'], {cwd:new URL('..', import.meta.url), env:{...process.env, PORT:String(port), HOST:'127.0.0.1', STUDIO_TOKEN:'',STUDIO_PASSWORD_GATE:'off', STUDIO_DATA_DIR:dir, MODEL_CALLS_ENABLED:'true', LLM_BASE_URL:`http://127.0.0.1:${fake.address().port}`, LLM_API_KEY:'local-fixture', LLM_MODEL:'fixture'}, stdio:['ignore','pipe','pipe']});
   try {
     await new Promise((resolve,reject) => { child.stdout.once('data', resolve); child.once('error', reject); child.once('exit', code => reject(new Error(`server exited ${code}`))); });
     const api = async (path, data) => {
@@ -48,7 +49,7 @@ test('generation retries bad output once, reuses good cache and preserves draft 
     assert.equal(repeatVideo.data.reused,true);assert.equal(repeatVideo.data.count,1);
     const workspace=await api('/api/studio/douyin/workspace');
     assert.equal(workspace.data.documents.length,1);
-    assert.equal(workspace.data.capabilities.skills,'planning_only');
+    assert.equal(workspace.data.capabilities.skills,'model_guided_review');
     const materialJob=await api('/api/studio/douyin/create-content',{documentId:workspace.data.documents[0].id,templateId:'tpl-news'});
     assert.equal(materialJob.data.entry,'抖音素材库');assert.equal(materialJob.data.body,'');
     assert.equal((await api('/api/studio/douyin/plans',{format:'X 短帖',skills:['dbs-script-flow']})).status,400);
@@ -60,7 +61,7 @@ test('generation retries bad output once, reuses good cache and preserves draft 
     assert.deepEqual(linked.data.pipelinePlanSnapshot.skills,['dbs-content-value','dbs-ai-check']);
     const path = `/api/studio/writing/jobs/${created.data.id}/generate`;
     const first = await api(path, {});
-    assert.equal(first.status,201); assert.equal(first.data.version.body,body); assert.equal(calls,2);
+    assert.equal(first.status,201);assert.ok(first.data.job.title.length>0&&first.data.job.title.length<=60);assert.notEqual(first.data.job.title,body); assert.equal(first.data.version.body,body); assert.equal(calls,2);
     assert.match(latestRequest.messages[1].content,/本地生成回归需要保留原文依据/);
     assert.equal(first.data.version.knowledgeSnapshot[0].documentId,imported.data.id);
     const second = await api(path, {});
@@ -68,10 +69,10 @@ test('generation retries bad output once, reuses good cache and preserves draft 
     rejectOutput = true;
     const another = await api('/api/studio/manual-ideas',{title:'失败保护',body:'不能覆盖的原稿'});
     const failed = await api(`/api/studio/writing/jobs/${another.data.id}/generate`,{});
-    assert.equal(failed.status,502); assert.equal(calls,4);
+    assert.equal(failed.status,422); assert.equal(calls,4);
     const db = JSON.parse(await readFile(join(dir,'studio.json'),'utf8'));
     assert.equal(db.jobs.find(job=>job.id===another.data.id).body,'不能覆盖的原稿');
-    assert.equal(db.versions.filter(version=>version.jobId===another.data.id).length,0);
+    assert.equal(db.versions.filter(version=>version.jobId===another.data.id && version.reason==='Gemini 生成').length,0);
     assert.equal(db.taskRuns[0].state,'failed'); assert.equal(db.taskRuns[0].cost,null);
     assert.equal(db.taskRuns[0].responses.length,2);
     dropConnection = true;
@@ -126,7 +127,7 @@ test('restart marks interrupted requests unknown without resending', async () =>
     child.kill(); await new Promise(resolve=>child.once('exit',resolve));
     const portServer=createServer(); await new Promise(resolve=>portServer.listen(0,'127.0.0.1',resolve));
     const port=portServer.address().port; await new Promise(resolve=>portServer.close(resolve));
-    const server=spawn(process.execPath,['src/server.mjs'],{cwd:new URL('..',import.meta.url),env:{...process.env,PORT:String(port),HOST:'127.0.0.1',STUDIO_TOKEN:'',STUDIO_DATA_DIR:dir},stdio:['ignore','pipe','pipe']});
+    const server=spawn(process.execPath,['src/server.mjs'],{cwd:new URL('..',import.meta.url),env:{...process.env,PORT:String(port),HOST:'127.0.0.1',STUDIO_TOKEN:'',STUDIO_PASSWORD_GATE:'off',STUDIO_DATA_DIR:dir},stdio:['ignore','pipe','pipe']});
     try {
       await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject)});
       const response=await fetch(`http://127.0.0.1:${port}/api/studio/overview`); assert.equal(response.status,200);

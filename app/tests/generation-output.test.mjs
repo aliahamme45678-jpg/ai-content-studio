@@ -9,6 +9,7 @@ test('rejects placeholders, short drafts and invalid field types', () => {
 test('extracts real draft after example JSON, fences and trailing explanation', () => {
   const input = '思考 {"body":"..."}\n```json\n' + JSON.stringify({body: draft + ' 引用包含 {括号} 和 "引号"。', corePoint:'测试', needsVerification:[]}) + '\n```\n结束说明';
   assert.equal(parseGeneration(input).body, draft + ' 引用包含 {括号} 和 "引号"。');
+  assert.equal(parseGeneration(JSON.stringify({body:'English analysis example '.repeat(8)})+'\n最终正文：\n'+JSON.stringify({body:draft})).body,draft);
 });
 test('rejects malformed and truncated objects', () => {
   assert.throws(() => parseGeneration('{"body":"unfinished'));

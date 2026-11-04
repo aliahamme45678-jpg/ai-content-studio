@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+  <title>SPX</title>
+  <rect width="40" height="40" rx="8" fill="#181C23"/>
+  <path d="M27 12H18.5C14.91 12 12 14.24 12 17s2.91 5 6.5 5h3c3.59 0 6.5 2.24 6.5 5s-2.91 5-6.5 5H13" transform="translate(0 -2)" stroke="white" stroke-width="3.2" stroke-linecap="square"/>
+  <path d="M27 8h5v5" stroke="#2FCE21" stroke-width="3.2"/>
+</svg>

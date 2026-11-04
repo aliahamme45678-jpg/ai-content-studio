@@ -1,0 +1,11 @@
+import {uid} from './workflow.mjs';
+export async function assetManageRoute({req,res,url,db,json,body,saveDb}){
+ if(req.method==='GET'&&url.pathname==='/api/studio/assets/trash'){
+ const groups=new Map();for(const doc of db.documents.filter(d=>d.assetDeleted)){const key=doc.assetLibraryId||doc.importSource||doc.id;if(!groups.has(key))groups.set(key,{id:doc.id,ids:[],name:doc.importName||doc.name});groups.get(key).ids.push(doc.id);}json(res,200,[...groups.values()]);return true;}
+ if(req.method!=='POST'||url.pathname!=='/api/studio/assets/manage')return false;const input=await body(req);if(!Array.isArray(input.ids)||input.ids.length>500||input.ids.some(id=>typeof id!=='string')){json(res,400,{error:'invalid_document_ids'});return true;}const docs=[...new Set(input.ids)].map(id=>db.documents.find(d=>d.id===id));if(!docs.length||docs.some(d=>!d)){json(res,400,{error:'document_not_found'});return true;}
+ if(!['save','delete','restore'].includes(input.action)){json(res,400,{error:'invalid_asset_action'});return true;}
+ if(input.action==='save'&&(!String(input.name||'').trim()||String(input.name).length>120||input.content!==undefined&&(!String(input.content).trim()||String(input.content).length>200000))){json(res,400,{error:'asset_name_and_content_required'});return true;}
+ for(const doc of docs){db.documentVersions||=[];db.documentVersions.unshift({...structuredClone(doc),documentId:doc.id,snapshotId:uid('docver'),savedAt:new Date().toISOString()});if(input.action==='save'){doc.importName=input.name.trim();if(docs.length===1&&input.content!==undefined){doc.content=input.content;doc.version=(doc.version||1)+1;const source=db.sources.find(s=>s.id===doc.id);if(source){source.content=doc.content;source.summary=doc.content;}}}else doc.assetDeleted=input.action==='delete';}
+ for(const set of db.knowledgeSets||[]){if(!set.documentIds.some(id=>docs.some(d=>d.id===id)))continue;if(set.documentIds.every(id=>db.documents.find(d=>d.id===id)?.assetDeleted))set.deletedAt=new Date().toISOString();else delete set.deletedAt;if(input.action==='save'&&set.documentIds.every(id=>docs.some(d=>d.id===id)))set.name=input.name.trim();}
+ await saveDb(db);json(res,200,{success:true});return true;
+}

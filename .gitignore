@@ -25,3 +25,18 @@ opensource/*/node_modules/
 opensource/*/douyin-collector/douyin_state.json
 opensource/*/douyin-collector/*.xlsx
 opensource/*/douyin-collector/*.ndjson
+
+# Local evidence and user content
+outputs/
+.env
+.env.*
+!.env.example
+
+# Local model responses and scratch captures
+app/gen-ds.json
+app/gen5.json
+app/gen6.json
+app/hook3.json
+app/res.json
+app/res2.json
+.codegraph/

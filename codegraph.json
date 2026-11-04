@@ -1,0 +1,6 @@
+{
+  "exclude": [
+    "app/public/hook-libraries.js",
+    "app/tests/hook-libraries.test.mjs"
+  ]
+}

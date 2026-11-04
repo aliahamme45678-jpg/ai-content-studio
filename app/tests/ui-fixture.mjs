@@ -1,0 +1,34 @@
+// Isolated browser verification. Never reads the user's real data or model keys.
+import { createServer } from 'node:http';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+const dir=fileURLToPath(new URL('../test-data-ui/',import.meta.url));await mkdir(dir,{recursive:true});
+const text='这是一份只用于本机验收的产品资料。工具支持整理素材、选择写作模板和知识库，并将生成稿保存为版本。外部素材只用于参考，不应被改写成作者本人的经历。';
+const seed={sources:[{id:'ui-news',title:'本地验收：内容工作流联通',summary:'公开测试摘要，仅用于验证情报到创作的来源关联。',source:'本地模拟情报',url:'https://example.org/ui-news',status:'未使用',origin:'aihot-live'}],documents:[{id:'ui-facts',name:'验收产品资料.md',type:'事实库',content:text,source:'本地验收',version:1,chunks:1,tag:'验收夹具'},{id:'ui-style',name:'验收写作规则.md',type:'规则与记忆库',content:'先说明结论，再给具体动作，不要虚构个人经历。',source:'本地验收',version:1,chunks:1,tag:'验收夹具'}],templates:[{id:'ui-short',name:'验收短帖模板',kind:'短帖',platform:'X',version:'v1',active:true,prompt:'围绕 {{topic}} 写具体的文案。',bindings:['事实库','规则与记忆库'],audits:['dbs-ai-check']},{id:'ui-thread',name:'验收 Thread 模板',kind:'Thread',platform:'X',version:'v1',active:true,prompt:'写成连续多帖。',bindings:['事实库'],audits:['dbs-ai-check']}],knowledgeSets:[{id:'ui-knowledge',name:'验收用产品知识库',documentIds:['ui-facts','ui-style'],version:1}],jobs:[],topics:[],publications:[],versions:[],taskRuns:[{id:'ui-collect',taskKind:'douyin-collect',state:'succeeded',startedAt:new Date().toISOString(),count:1,rows:[{aweme_id:'fixture-video',title:'本地验收视频素材',author_name:'验收作者',content:'这是一段用于测试预检和入库的转写正文。',digg_count:42,comment_count:3,collect_count:9,url:'https://www.douyin.com/video/fixture-video'}],fields:['title','url','author','transcript','diggCount'],filters:{},summary:{total:1,matched:1,failedRows:0,unknownPlayCountExcluded:0},logs:'本机夹具，未访问抖音。'}],integration:{aihot:{mode:'live',connected:true,count:1,syncHistory:[]}}};
+seed.templates.push({id:'ui-video',name:'验收视频口播模板',kind:'视频口播',platform:'抖音',version:'v1',active:true,prompt:'写具体的口播文案',bindings:[],audits:['dbs-ai-check']});
+seed.taskRuns[0].request={mode:'video',urls:['https://www.douyin.com/video/fixture-video']};
+seed.taskRuns.unshift({id:'ui-account',taskKind:'douyin-collect',state:'succeeded',startedAt:new Date().toISOString(),request:{mode:'profile',purpose:'account-analysis',collectAll:true,urls:['https://www.douyin.com/user/fixture-author']},rows:Array.from({length:10},(_,i)=>({aweme_id:String(100+i),author_name:'隔离验收博主',title:i===7?'推荐工具，主页领取 #AI工具':`普通商家整理产品资料的方法 ${i+1} #AI工具`,create_time:Date.parse(`2026-11-${String(i+1).padStart(2,'0')}T12:00:00+08:00`)/1000,digg_count:i===7?20000:1000,collect_count:i===7?100:500,comment_count:20,share_count:10,content:i===7?'我推荐这个工具，具体步骤在主页领取。'+text:text,url:`https://www.douyin.com/video/${100+i}`})),summary:{coverage:{requestedAll:true,complete:true,stopReason:'本机夹具：模拟末页',collected:10}},logs:'隔离数据，未采集真实账号。'});
+await writeFile(join(dir,'studio.json'),JSON.stringify(seed));
+const fixture=createServer(async(req,res)=>{
+  res.setHeader('content-type','application/json');
+  if(req.url==='/api/config')return res.end(JSON.stringify({studioBridge:true,hermesConfigured:true,model:'local-fixture'}));
+  let raw='';for await(const chunk of req)raw+=chunk;const request=JSON.parse(raw||'{}');
+  if(req.url==='/api/studio-copywriting')return res.end(JSON.stringify({mode:'hermes',text:text.repeat(2),model:'local-fixture'}));
+  const system=request.messages?.[0]?.content||'';
+  if(system.includes('素材写法提炼器')){const docs=JSON.parse(request.messages[1].content).documents;return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({soul:{soul_summary:'隔离验收：先给结果，再用短句给步骤。',writing_rules:{opening_style:['结果前置'],sentence_style:'短句口播'}},prompt:'围绕 {{topic}} 写完整口播。先给结论，再用可执行步骤展开。参考知识库的表达结构，不将外部作者经历写成自己的事实。原稿改写保留原意并重组结构。',rules:['不虚构经历'],patterns:[{name:'具体动作',explanation:'用动作解释工具能力，仅代表当前样本。',documentId:docs[0].id,quote:docs[0].content.slice(0,20)}]})}}]}));}
+  if(system.includes('抖音账号起号研究员')){const input=JSON.parse(request.messages[1].content);return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({videos:input.videos.map(v=>({id:v.id,tags:v.anomaly?['起号作品','广告作品','异常爆款']:['选题优质','优质文案'],topic:'AI 工具实操',hook:'具体问题开头',technique:'步骤讲解与主页引流',reason:'本机模拟分析：异常作品点赞为账号中位数的二十倍，同时存在推荐和主页引流线索。',evidence:[{quote:v.title,why:'标题直接体现选题或推广线索'}],promotion:v.anomaly?'商业推广倾向较强，实际投放需要后台数据确认':'缺少投放线索',funnel:v.funnels.join('、')||'未发现明确引流',hotspot:'未提供可核验热点信息',confidence:'中'}))})}}]}));}
+  if(system.includes('给创作者自用的抖音账号研究顾问'))return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({overview:'隔离验收：账号以 AI 工具实操积累普通作品，11 月 8 日出现二十倍中位数的推广型异常作品。',breakout:{date:'2026-11-08',videoIds:['107'],reason:'推荐式选题与主页领取钩子共现，是值得优先复查的转折作品。',alternatives:'投放、外部转发和分发变化仍可能影响互动。'},patterns:[{name:'用具体步骤承接一个问题',explanation:'先讲使用场景，再给可执行步骤；与普通作品比较题材和收藏反馈。',videoIds:['100','101']},{name:'结果承诺连接主页资料',explanation:'通过主页领取形成引流路径；研究入口承接，但不据此断定真实投流。',videoIds:['107']}],advertising:'107 号作品有明确推荐口吻和低藏赞比，属于优先复查的商业推广线索。',funnels:'异常作品指向主页领取。',nextSteps:['对照相邻日期的普通作品，比较开头与选题差异。']})}}]}));
+  if(system.includes('审核意见修改助手')){const input=JSON.parse(request.messages[1].content);return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({body:input.original.replace('在当今，',''),corePoint:'去掉空泛开头，保留原意与结构。',needsVerification:[]})}}]}));}
+  const auditing=system.includes('审核助手');
+  if(auditing){const input=JSON.parse(request.messages[1].content);const original=String(input.body||input.original||input.text||'');if(original.includes('在当今，'))return res.end(JSON.stringify({choices:[{message:{content:JSON.stringify({summary:'开头有一句空泛套话。',issues:[{skill:'dbs-ai-check',quote:'在当今，',severity:'低',explanation:'开头太空泛。',suggestion:'去掉这句，直接进入主题。',replacement:''}]})}}]}));}
+
+  const content=auditing?JSON.stringify({summary:'本地模拟模型确认：这段文案没有需要修改的问题。',issues:[]}):JSON.stringify({body:text.repeat(2),corePoint:'工作流程一致',needsVerification:[]});
+  res.end(JSON.stringify({choices:[{message:{content}}],usage:{total_tokens:1}}));
+});
+await new Promise(resolve=>fixture.listen(4312,'127.0.0.1',resolve));
+const child=spawn(process.execPath,['src/server.mjs'],{cwd:new URL('..',import.meta.url),env:{...process.env,PORT:'4311',HOST:'127.0.0.1',STUDIO_DATA_DIR:dir,STUDIO_TOKEN:'',STUDIO_PASSWORD_GATE:'off',AIHOT_DATABASE_URL:'',AIHOT_BASE_URL:'',MODEL_CALLS_ENABLED:'true',LLM_BASE_URL:'http://127.0.0.1:4312',LLM_API_KEY:'fixture',LLM_MODEL:'local-fixture',HERMES_SERVICE_URL:'http://127.0.0.1:4312',HERMES_API_URL:'',DASHSCOPE_API_KEY:''},stdio:['ignore','pipe','pipe']});
+child.stdout.pipe(process.stdout);child.stderr.pipe(process.stderr);
+process.on('SIGTERM',()=>{child.kill();fixture.close(()=>process.exit(0));});
+process.on('SIGINT',()=>{child.kill();fixture.close(()=>process.exit(0));});
