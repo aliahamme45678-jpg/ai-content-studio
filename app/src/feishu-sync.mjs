@@ -1,3 +1,4 @@
+import {accountStats} from './account-analysis.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -22,17 +23,33 @@ export function runLark(args,{cwd,write=false}={}){
 }
 
 export function sourceKey(value){try{const link=String(value||'').match(/https?:\/\/[^\s\]\[()<>"']+/)?.[0];if(!link)return '';const url=new URL(link);const douyin=['www.douyin.com','douyin.com','www.iesdouyin.com','iesdouyin.com'].includes(url.hostname);const video=douyin&&(url.pathname.match(/\/(?:video|slides|note)\/(\d+)/)?.[1]||url.searchParams.get('modal_id'));return video&&/^\d+$/.test(video)?`video:${video}`:`${url.hostname}${url.pathname}`;}catch{return '';}}
-export function toFeishuRecord(row){
+export function toFeishuRecord(row,analysis){
   const record={'标题':row.title,'原文 / 文案':row.transcript,'来源链接':row.url,'平台':['抖音']};
   if(row.author)record['作者']=row.author;
   for(const [field,key] of [['点赞数','diggCount'],['收藏数','collectCount'],['评论数','commentCount'],['转发数','shareCount']])if(typeof row[key]==='number'&&Number.isFinite(row[key]))record[field]=row[key];
-  record['字数']=row.transcript.length;return record;
+  record['字数']=row.transcript.length;
+  if(row.diggCount>0){for(const [field,key] of [['藏赞比','collectCount'],['评赞比','commentCount'],['转赞比','shareCount']])if(Number.isFinite(row[key]))record[field]=row[key]/row.diggCount;}
+  if(Number.isFinite(row.followerCount))record['作者粉丝数']=row.followerCount;
+  if(row.followerCount>0&&Number.isFinite(row.diggCount))record['点赞粉丝比']=row.diggCount/row.followerCount;
+  if(Number.isFinite(row.durationMs))record['时长']=(row.durationMs/1000).toFixed(0)+' 秒';
+  if(row.transcript)record['黄金开头']=row.transcript.split(/[。！？!?\n]/)[0];
+  if(analysis){if(analysis.topic)record['选题切口']=analysis.topic;if(analysis.hook)record['Hook机制']=analysis.hook;if(analysis.technique)record['可复用机制']=analysis.technique;}
+  return record;
+}
+
+export function toTopicRecord(row,analysis,baseline){
+ const record={'原视频标题':row.title,'视频文案':row.transcript,'来源链接':row.url,'保存时间':Date.now()};
+ for(const [name,key] of [['点赞','diggCount'],['收藏','collectCount'],['评论数','commentCount'],['转发数','shareCount']])if(Number.isFinite(row[key]))record[name]=row[key];
+ if(row.collectCount>0&&Number.isFinite(row.diggCount))record['赞藏比']=row.diggCount/row.collectCount;
+ if(baseline>0&&Number.isFinite(row.diggCount))record['基数']=row.diggCount/baseline;
+ if(analysis)record['Ai分析']=[['分类',(analysis.tags||[]).join('、')],['结论',analysis.reason],['选题',analysis.topic],['开头',analysis.hook],['手法',analysis.technique],['推广与投流',analysis.promotion],['引流',analysis.funnel],['热点',analysis.hotspot]].filter(([,v])=>v).map(([k,v])=>k+'：'+v).join('\n');
+ return record;
 }
 
 export async function feishuSyncRoute(ctx,call=runLark){
   const {req,res,url,db,json,body,saveDb,dataDir}=ctx;
   const respond=(status,data)=>{json(res,status,data);return true;};
-  const configured=db.integration?.feishu;
+  let configured=db.integration?.feishu;
   if(req.method==='GET'&&url.pathname==='/api/studio/integrations/feishu/status')return respond(200,{configured:Boolean(configured),available:existsSync(binary),target:configured||null});
   if(req.method==='POST'&&url.pathname==='/api/studio/integrations/feishu/connect'){
     const input=await body(req);let target;try{target=new URL(input.url);}catch{fail('invalid_feishu_base_url',400);}
@@ -50,7 +67,21 @@ export async function feishuSyncRoute(ctx,call=runLark){
   if(!configured)fail('feishu_target_not_configured');
   const task=db.taskRuns.find(r=>r.id===match[1]&&r.taskKind==='douyin-collect');if(!task||task.state!=='succeeded')fail('collection_result_unavailable');
   if(db.taskRuns.some(r=>r.jobId===task.id&&r.taskKind!=='feishu-sync'&&['running','unknown'].includes(r.state)))fail('processing_stage_in_progress');
-  const rows=task.rows.map(normalizeMaterial);const eligible=rows.filter(r=>r.transcript?.trim()&&sourceKey(r.url));
+  const input=req.method==='POST'?await body(req):{};
+  if(input.videoIds!==undefined&&(!Array.isArray(input.videoIds)||input.videoIds.length!==1||typeof input.videoIds[0]!=='string'))fail('feishu_invalid_video_selection',400);
+  const allRows=task.rows.map(normalizeMaterial),rows=input.videoIds?allRows.filter(r=>input.videoIds.includes(r.externalId)):allRows;
+  if(input.videoIds&&rows.length!==1)fail('video_not_found',404);
+  if(input.videoIds){
+    const tables=await call(['base','+table-list','--base-token',configured.baseToken,'--as','user'],{cwd:dataDir});
+    const target=tables.tables?.find(t=>t.name==='选题列表');if(!target)fail('feishu_topic_table_not_found');
+    const link=new URL(configured.url);link.searchParams.set('table',target.id);configured={...configured,tableId:target.id,tableName:target.name,url:link.href};
+  }
+  let fields=configured.fields;
+  if(input.videoIds){const schema=await call(['base','+field-list','--base-token',configured.baseToken,'--table-id',configured.tableId,'--as','user'],{cwd:dataDir});fields=(schema.fields||[]).map(f=>({...f,options:f.options?.map(o=>typeof o==='string'?o:o.name)}));}
+  const latest=db.taskRuns.find(r=>r.jobId===task.id&&r.taskKind==='account-analysis'&&r.dataHash===hash(JSON.stringify({rows:task.rows,settings:r.settings}))),report=db.accountAnalyses?.find(r=>r.taskId===task.id&&r.dataHash===hash(JSON.stringify({rows:task.rows,settings:r.settings})));
+  const baseline=input.videoIds?accountStats(task.rows,latest?.settings||report?.settings).baseline.medianLikes:null;
+  const analyses=new Map([...(report?.videos||[]),...(latest?.videoResults||[])].map(v=>[v.id,v]));
+  const eligible=rows.filter(r=>r.transcript?.trim()&&sourceKey(r.url));
   if(!eligible.length)fail('transcript_and_source_required_before_sync');
   const unresolved=db.taskRuns.find(r=>r.taskKind==='feishu-sync'&&r.jobId===task.id&&['running','unknown'].includes(r.state));
   if(unresolved)fail(unresolved.state==='unknown'?'feishu_previous_write_needs_review':'feishu_sync_in_progress');
@@ -66,12 +97,12 @@ export async function feishuSyncRoute(ctx,call=runLark){
   const selected=eligible.filter(r=>{const k=sourceKey(r.url);if(known.has(k))return false;known.add(k);return true;});
   const summary={inputHash:key,target:configured.url,tableName:configured.tableName,total:rows.length,ready:eligible.length,create:selected.length,skipExisting:eligible.length-selected.length,skipWithoutText:rows.length-eligible.length};
   if(match[2])return respond(200,summary);
-  const input=await body(req);if(input.confirmed!==true)fail('confirm_feishu_sync_first',400);
+  if(input.confirmed!==true)fail('confirm_feishu_sync_first',400);
   if(input.inputHash&&input.inputHash!==key)fail('collection_changed_review_sync_again');
   const run={id:uid('run'),jobId:task.id,taskKind:'feishu-sync',state:'running',inputHash:key,summary,recordIds:[],startedAt:new Date().toISOString()};db.taskRuns.unshift(run);await saveDb(db);
   try{
     for(let i=0;i<selected.length;i+=100){
-      const create_records=selected.slice(i,i+100).map(row=>Object.fromEntries(Object.entries(toFeishuRecord(row)).filter(([name,value])=>configured.fields.some(f=>f.name===name&&(name!=='平台'||f.options?.includes('抖音'))))));
+      const create_records=selected.slice(i,i+100).map(row=>Object.fromEntries(Object.entries(input.videoIds?toTopicRecord(row,analyses.get(row.externalId),baseline):toFeishuRecord(row,analyses.get(row.externalId))).filter(([name,value])=>fields.some(f=>f.name===name&&(name!=='平台'||f.options?.includes('抖音'))))));
       run.awaitingResponse=true;await saveDb(db);
       const result=await call(['base','+record-batch-create','--base-token',configured.baseToken,'--table-id',configured.tableId,'--json',JSON.stringify({create_records}),'--as','user'],{cwd:dataDir,write:true});
       if(!Array.isArray(result.record_id_list)||result.record_id_list.length!==create_records.length)throw Object.assign(new Error('feishu_write_receipt_incomplete'),{unknown:true});

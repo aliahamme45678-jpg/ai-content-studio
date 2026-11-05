@@ -195,6 +195,7 @@ async function bindEvents() {
         try{await saveFullWriterInput(true);}catch(error){toast(`尚未保存：${error.message}`,'error');return;}finally{fullWriter.busy=false;}
       }
     }
+    if(element.dataset.view==='douyin'){douyinTab=element.hasAttribute('data-task-entry')?'tasks':'collect';accountView.detail=false;accountView.taskId=null;}
     state.view = element.dataset.view; document.querySelectorAll('.nav').forEach(nav => nav.classList.toggle('active', nav.dataset.view === state.view)); render();
   });
   document.querySelectorAll('[data-write]').forEach(element => element.onclick = async () => { const job = await api('/api/studio/writing/jobs', { method: 'POST', body: JSON.stringify({ sourceId: element.dataset.write, entry: 'AIHOT 新闻', template: state.data.templates.find(item => item.id === 'tpl-news')?.name }) }); state.jobId = job.id; state.view = 'studio'; await load(); });

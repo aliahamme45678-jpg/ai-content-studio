@@ -28,7 +28,7 @@ function drawDouyin() {
   shell('','启动前选好转写、知识库和飞书同步，后台自动执行；完成后选素材去写作。',`
     ${collectionGuide()}
     <div class="panel" style="margin:16px 0">
-    <div class="tabs pipeline-tabs" aria-label="采集与分析">${[['collect','采集任务'],['account','起号分析'],['dna','写作蒸馏'],['tasks','任务列表']].map(([key,label])=>`<button class="tab ${douyinTab===key?'active':''}" data-pipeline-tab="${key}">${label}</button>`).join('')}</div>
+    <div class="tabs pipeline-tabs" aria-label="采集与分析">${[['collect','采集任务'],['account','起号分析'],['dna','写作蒸馏']].map(([key,label])=>`<button class="tab ${douyinTab===key?'active':''}" data-pipeline-tab="${key}">${label}</button>`).join('')}</div>
     <div id="pipeline-content"></div></div>
     <section class="panel" id="pipeline-import" ${douyinBatch?'':'hidden'}><div class="panel-head"><h3>导入与预检</h3><span class="tag">确认后才入库</span></div><label for="pipeline-file">导出文件</label><input class="field" id="pipeline-file" type="file" accept=".json,.jsonl,.csv,.xlsx" style="display:block;width:100%;margin:8px 0"><label for="pipeline-text">JSON / JSONL / CSV 原始内容</label><textarea class="textarea" id="pipeline-text" style="min-height:150px" placeholder="粘贴 douyin-material-pipeline 导出内容"></textarea><div class="actions" style="margin-top:12px"><button class="primary" id="pipeline-preview">预检字段与正文</button><span id="pipeline-feedback" role="status" class="muted"></span></div><div id="pipeline-preview-result"></div></section>`);
   document.querySelectorAll('[data-pipeline-tab]').forEach(button=>button.onclick=()=>{douyinTab=button.dataset.pipelineTab;if(['account','tasks'].includes(douyinTab)){accountView.detail=false;accountView.taskId=null;}drawPipelineTab();});
@@ -47,7 +47,8 @@ function drawDouyin() {
 function drawPipelineTab() {
   document.querySelectorAll('.nav[data-view="douyin"]').forEach(button=>button.classList.toggle('active',Boolean(button.hasAttribute('data-account-entry'))===(douyinTab==='account')));
   document.querySelectorAll('[data-pipeline-tab]').forEach(button=>button.classList.toggle('active',button.dataset.pipelineTab===douyinTab));
-  document.querySelectorAll('.nav').forEach(button=>button.classList.toggle('active',button.dataset.view==='douyin'));
+  document.querySelectorAll('.nav').forEach(button=>button.classList.toggle('active',button.dataset.view==='douyin'&&(button.hasAttribute('data-task-entry')?(douyinTab==='tasks'):(douyinTab!=='tasks'))));
+  const tabs=document.querySelector('.pipeline-tabs');if(tabs)tabs.hidden=douyinTab==='tasks';
   const node=$('#pipeline-content');
   node.parentElement.classList.toggle('account-mode',['account','tasks'].includes(douyinTab));
   node.parentElement.classList.toggle('collect-mode',douyinTab==='collect');

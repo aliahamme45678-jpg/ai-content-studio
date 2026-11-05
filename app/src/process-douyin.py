@@ -18,6 +18,15 @@ rows = json.loads((task_dir / 'result.json').read_text(encoding='utf-8'))
 rows = [dict(row, aweme_id=row.get('aweme_id') or row.get('externalId'),
              author_name=row.get('author_name') or row.get('author', ''),
              comment_count=row.get('comment_count', row.get('commentCount', 0))) for row in rows]
+selection_path = stage_dir / 'selection.json'
+selection = json.loads(selection_path.read_text(encoding='utf-8')) if selection_path.exists() else {}
+if selection.get('videoId'):
+    rows = [row for row in rows if str(row.get('aweme_id') or row.get('externalId')) == selection['videoId']]
+    if len(rows) != 1:
+        raise RuntimeError('video_retry_selection_invalid')
+    if selection.get('sourceUrl'):
+        rows[0].setdefault('originalSourceUrl', rows[0].get('url', ''))
+        rows[0]['url'] = selection['sourceUrl']
 summary = {'succeeded': 0, 'failed': 0, 'skipped': 0, 'unknown': 0}
 
 
@@ -45,7 +54,7 @@ if stage == 'asr':
         checkpoint()
         try:
             url = row.get('play_url') or row.get('playUrl')
-            text = asr.transcribe_video(url, workdir=str(stage_dir / 'audio')) if url else asr.transcribe_douyin(row.get('url', ''), headless=True)
+            text = asr.transcribe_douyin(row.get('url', ''), headless=True) if selection.get('refreshSource') else (asr.transcribe_video(url, workdir=str(stage_dir / 'audio')) if url else asr.transcribe_douyin(row.get('url', ''), headless=True))
             if not text.strip(): raise RuntimeError('empty_transcript')
             row['content'] = row['transcript'] = text
             row['transcriptState'] = 'succeeded'

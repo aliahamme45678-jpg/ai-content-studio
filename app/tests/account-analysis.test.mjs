@@ -1,10 +1,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { accountStats, analysisPrompt, parseVideoAnalysis } from '../src/account-analysis.mjs';
-import { executeAccountAnalysis, accountAnalysisRoutes, recoverVideoResults } from '../src/account-analysis-routes.mjs';
+import { accountStats, analysisPrompt, parseVideoAnalysis, accountSourceQuote } from '../src/account-analysis.mjs';
+import { executeAccountAnalysis, accountAnalysisRoutes, recoverVideoResults, accountProcessingProgress } from '../src/account-analysis-routes.mjs';
 
 const rows=Array.from({length:10},(_,i)=>({aweme_id:String(100+i),title:i===7?'推荐产品，主页领取 #工具':'一个实用选题 #工具',create_time:Date.parse(`2026-11-${String(i+1).padStart(2,'0')}T12:00:00+08:00`)/1000,digg_count:i===7?20000:1000,collect_count:i===7?100:500,comment_count:20,share_count:10,content:'先整理真实产品资料，再讲具体步骤，不用空泛承诺。',url:`https://www.douyin.com/video/${100+i}`}));
 const answer=v=>({id:v.id,tags:v.anomaly?['异常爆款','广告作品']:['普通文案'],topic:'工具使用',hook:'具体方法开头',technique:'步骤讲解',reason:'与普通作品相比互动明显变化，但仍需区分推广与选题作用。',evidence:[{quote:v.title,why:'标题直接呈现话题和推广线索'}],promotion:'商业推广倾向，实际投流未知',funnel:v.funnels.join('、')||'未发现',hotspot:'未提供外部热点证据',confidence:'中'});
+test('completed invalid response repairs only the rejected item and preserves its valid batch sibling',async()=>{
+ const old=process.env.LLM_BASE_URL;process.env.LLM_BASE_URL='http://fixture';
+ try{const stats=accountStats(rows),first=stats.videos[0],second=stats.videos[1],run={state:'running',targetVideoIds:[first.id,second.id]};let calls=0;
+ await executeAccountAnalysis({db:{accountAnalyses:[]},run,task:{rows},stats,context:'',saveDb:async()=>{},fetcher:async(_u,options)=>{const input=JSON.parse(JSON.parse(options.body).messages[1].content);calls++;if(calls===1)return Response.json({choices:[{message:{content:JSON.stringify({videos:[answer(first),{...answer(second),evidence:[{quote:'编造的引用',why:'错误'}]}]})}}]});assert.deepEqual(input.videos.map(v=>v.id),[second.id]);return Response.json({choices:[{message:{content:JSON.stringify({videos:[{...answer(second),evidence:[{evidenceId:'title',why:'真实标题'}]}]})}}]});}});
+ assert.equal(calls,2);assert.equal(run.state,'partial');assert.equal(run.videoResults.length,2);assert.equal(run.validationRepairs.length,1);
+ }finally{if(old===undefined)delete process.env.LLM_BASE_URL;else process.env.LLM_BASE_URL=old;}
+});
+test('partial success keeps the count and targeted analysis only submits the selected unfinished video',async()=>{
+ const oldBase=process.env.LLM_BASE_URL;process.env.LLM_BASE_URL='http://local-fixture';
+ try{const stats=accountStats(rows),task={id:'t',rows},saved=answer(stats.videos[0]);const run={id:'r',jobId:'t',taskKind:'account-analysis',state:'running',videoResults:[saved],targetVideoIds:[stats.videos[2].id]};const db={taskRuns:[run],accountAnalyses:[]};let calls=0;
+ await executeAccountAnalysis({db,run,task,stats,context:'',saveDb:async()=>{},fetcher:async(_u,o)=>{calls++;const input=JSON.parse(JSON.parse(o.body).messages[1].content);assert.deepEqual(input.videos.map(v=>v.id),[stats.videos[2].id]);return Response.json({choices:[{message:{content:JSON.stringify({videos:[answer(stats.videos[2])]})}}]});}});
+ assert.equal(calls,1);assert.equal(run.state,'partial');assert.equal(run.videoResults.length,2);assert.equal(run.videoResults[0],saved);assert.equal(db.accountAnalyses.length,0);
+ const p=accountProcessingProgress(db,task);assert.equal(p.analysisState,'部分成功');assert.equal(p.analysisCompleted,2);assert.equal(p.analysisTotal,10);
+ run.state='unknown';assert.equal(accountProcessingProgress(db,task).analysisState,'unknown');
+ }finally{if(oldBase===undefined)delete process.env.LLM_BASE_URL;else process.env.LLM_BASE_URL=oldBase;}
+});
 
 test('truncated paid responses recover only complete independently validated video results',()=>{
   const stats=accountStats(rows);const first=answer(stats.videos[0]);const bad={...answer(stats.videos[1]),evidence:[{quote:'不存在的引文',why:'捏造'}]};
@@ -74,4 +90,13 @@ test('account analysis persists full video classifications and grounded summary,
     const upstreamFailure={id:'gateway-error',state:'running'};await executeAccountAnalysis({db,run:upstreamFailure,task,stats,context:'',saveDb:async()=>{},fetcher:async()=>new Response('{"error":"upstream unavailable"}',{status:502,headers:{'x-request-id':'fixture-request'}})});assert.equal(upstreamFailure.state,'unknown');assert.equal(upstreamFailure.httpFailure.status,502);assert.equal(upstreamFailure.httpFailure.requestId,'fixture-request');assert.match(upstreamFailure.httpFailure.detail,/upstream unavailable/);
     const unreachable={id:'unreachable',state:'running'};await executeAccountAnalysis({db,run:unreachable,task,stats,context:'',saveDb:async()=>{},fetcher:async()=>{throw new TypeError('fetch failed',{cause:Object.assign(new Error('connect refused'),{code:'ECONNREFUSED'})});}});assert.equal(unreachable.state,'failed');assert.equal(unreachable.errorCode,'ECONNREFUSED');
   }finally{if(oldBase===undefined)delete process.env.LLM_BASE_URL;else process.env.LLM_BASE_URL=oldBase;}
+});
+
+test('quote formatting differences anchor to actual source without tolerating invented words or numbers',()=>{
+ const source='所以我这次使用 minmax 的 m code，借助多 agent 的去拆分各种岗位，模拟单人独立开发完成全项目流程。';
+ const quote='所以我这次使用minmax的 m code，借助多agent的去拆分各种岗位，模拟单人独立开发完成全项目流程。';
+ const found=accountSourceQuote(quote,source);assert.ok(found);assert.ok(source.includes(found));
+ assert.equal(accountSourceQuote('这个产品利润是15元，适合测试。','这个产品利润是1.5元，适合测试。'),null);
+ assert.equal(accountSourceQuote('这个产品可以保证一定赚钱。','这个产品不可以保证一定赚钱。'),null);
+ const v=accountStats(rows).videos[0],item=answer(v);item.evidence=[{evidenceId:'title',why:'标题证据'}];assert.equal(parseVideoAnalysis(JSON.stringify({videos:[item]}),[v])[0].evidence[0].quote,v.title);
 });

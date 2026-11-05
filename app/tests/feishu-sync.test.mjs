@@ -1,4 +1,10 @@
 import { test } from 'node:test';
+test('single-record save sends only the selected video and reads the current schema without creating fields',async()=>{
+ const dataDir=await mkdtemp(join(tmpdir(),'spx-one-feishu-'));let payload,schemas=0;
+ const target={baseToken:'base',tableId:'tbl1',url:'https://example.feishu.cn/base/base',fields:[]};
+ const rows=[{aweme_id:'1',title:'第一条',url:'https://www.douyin.com/video/1',content:'第一条正文'},{aweme_id:'2',title:'第二条',url:'https://www.douyin.com/video/2',content:'第二条正文'}];const db={integration:{feishu:target},taskRuns:[{id:'t',taskKind:'douyin-collect',state:'succeeded',rows}]};
+ try{await feishuSyncRoute({req:{method:'POST'},res:{},url:new URL('http://local/api/studio/douyin/tasks/t/feishu'),db,dataDir,body:async()=>({confirmed:true,videoIds:['2']}),saveDb:async()=>{},json:(_,status,r)=>{assert.equal(status,200);assert.equal(r.summary.total,1);}},async args=>{if(args.includes('+table-list'))return {tables:[{id:'tblTopics',name:'选题列表'}]};if(args.includes('+field-list')){schemas++;assert.ok(args.includes('tblTopics'));return {fields:[{name:'原视频标题'},{name:'视频文案'},{name:'来源链接'}]};}if(args.includes('+record-list')){await writeFile(join(dataDir,args[args.indexOf('--output')+1]),'');return {has_more:false};}assert.ok(args.includes('+record-batch-create'));payload=JSON.parse(args[args.indexOf('--json')+1]);return {record_id_list:['one']};});assert.equal(schemas,1);assert.equal(payload.create_records.length,1);assert.equal(payload.create_records[0]['原视频标题'],'第二条');assert.equal(rows[0].content,'第一条正文');}finally{await rm(dataDir,{recursive:true,force:true});}
+});
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';

@@ -501,3 +501,53 @@ body.ryxo-spx .dna-history-state{display:inline-flex;align-items:center;white-sp
 body.ryxo-spx .dna-history-state.running,.dna-history-state.succeeded{color:#28831a}
 body.ryxo-spx .dna-history-state.failed,.dna-history-state.unknown{color:#b54735}
 body.ryxo-spx .dna-history-pagination{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:16px 0 0;font-size:13px}
+/* Account workspace: separate metrics and keep overflow inside the works table. */
+body.ryxo-spx #account-video-table .pipeline-table-wrap{width:100%;max-width:100%;overflow-x:auto;}
+body.ryxo-spx #account-video-table .account-video-table{table-layout:fixed;width:100%;min-width:1360px;max-width:none;}
+body.ryxo-spx #account-video-table .account-video-table :is(th,td){min-width:0;padding:12px;vertical-align:middle;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+body.ryxo-spx #account-video-table .account-video-table td:first-child{min-width:0;max-width:none;}
+body.ryxo-spx #account-video-table .account-work-title strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;font-weight:500;margin:0;line-height:1.6;}
+body.ryxo-spx #account-video-table .account-work-title small{margin:4px 0 0;}
+body.ryxo-spx #account-video-table .account-video-table td:nth-child(9),body.ryxo-spx #account-video-table .account-work-clues{white-space:normal;overflow-wrap:anywhere;}
+body.ryxo-spx #account-video-table .account-video-table :is(th,td):last-child{position:sticky;right:0;background:#fff;text-align:center;border-left:1px solid #e8eaed;padding:10px 8px;}
+body.ryxo-spx #account-video-table .account-video-table th:last-child{background:#f7f8fa;}
+body.ryxo-spx #account-video-table .small-btn{min-width:56px;min-height:32px;padding:4px 10px;}
+body.ryxo-spx #account-current-task{padding:24px;display:flex;flex-direction:column;gap:20px;min-width:0;}
+body.ryxo-spx #account-current-task > .panel-head{margin:0;align-items:center;gap:16px;}
+body.ryxo-spx #account-current-task .collection-progress{padding:0;border:0;display:flex;flex-direction:column;gap:14px;min-width:0;}
+body.ryxo-spx #account-current-task .collection-progress .panel-head{margin:0;}
+body.ryxo-spx #account-current-task h3{font-size:16px;line-height:24px;margin:0;}
+body.ryxo-spx #account-current-task .collection-log-output{margin:0;height:240px;min-height:160px;max-height:360px;overflow:auto;padding:16px;}
+body.ryxo-spx #account-current-task > .actions{margin:0;padding-top:16px;border-top:1px solid #e8eaed;gap:12px;}
+body.ryxo-spx #account-clear-page{flex:none;margin-left:auto;}
+body.ryxo-spx .account-detail-pane[data-account-pane="report"]{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;}
+body.ryxo-spx .account-detail-pane[data-account-pane="report"][hidden]{display:none;}
+body.ryxo-spx .account-detail-pane .account-report-notice{padding:12px 16px;min-height:0;text-align:left;margin:0;border:1px solid #e8eaed;border-radius:6px;font-size:13px;}
+body.ryxo-spx .account-detail-pane :is(.account-summary,.account-chart-panel,.account-turning-points){margin:0;padding:20px;min-width:0;background:#fff;border:1px solid #e8eaed;border-radius:6px;}
+body.ryxo-spx .account-detail-pane .account-chart{height:220px;max-height:220px;}
+body.ryxo-spx .account-detail-pane .account-chart-panel .panel-head{margin:0 0 16px;}
+body.ryxo-spx .account-detail-pane .account-comparison .panel-head{margin:0 0 16px;}
+body.ryxo-spx .account-comparison-table{table-layout:fixed;width:100%;min-width:1080px;}
+body.ryxo-spx .account-comparison-table :is(th,td){font-size:13px;padding:12px;vertical-align:middle;font-variant-numeric:tabular-nums;}
+body.ryxo-spx .account-comparison-table th{white-space:nowrap;}
+body.ryxo-spx .account-comparison-table :is(th,td):first-child{width:110px;}
+body.ryxo-spx .account-comparison-table :is(th,td):nth-child(2){width:240px;overflow-wrap:anywhere;}
+body.ryxo-spx .account-comparison-table small{display:block;font-size:12px;color:#909399;margin-top:4px;font-weight:400;}
+body.ryxo-spx .account-comparison-table :is(th,td):last-child{width:96px;}
+body.ryxo-spx .account-comparison-table .small-btn{min-height:32px;padding:4px 10px;}
+body.ryxo-spx #account-video-table .account-sort-button{display:inline-flex;align-items:center;gap:6px;padding:0;min-height:28px;border:0;background:transparent;font:inherit;font-weight:500;color:#666;white-space:nowrap;cursor:pointer;}
+body.ryxo-spx #account-video-table .account-sort-button span{color:#909399;font-size:14px;}
+body.ryxo-spx #account-video-table .account-sort-button:is(.active,:hover),body.ryxo-spx #account-video-table .account-sort-button.active span{color:#28831a;}
+body.ryxo-spx #account-video-table .account-sort-button:focus-visible{outline:2px solid #28831a;outline-offset:3px;border-radius:2px;}
+body.ryxo-spx #account-video-table .account-numeric{font-variant-numeric:tabular-nums;}
+body.ryxo-spx #account-video-table .metric-high{color:#28831a;font-weight:600;}
+body.ryxo-spx #account-video-table .metric-low{color:#a66513;font-weight:500;}
+body.ryxo-spx #account-video-table .account-tag-quality{background:#eff9eb;color:#28831a;}
+body.ryxo-spx #account-video-table .account-tag-spike{background:#fff3e5;color:#a66513;}
+body.ryxo-spx #account-video-table .account-tag-ad{background:#f7ebf5;color:#8a437c;}
+body.ryxo-spx #account-video-table .account-tag-start{background:#eef2fc;color:#4d62a4;}
+body.ryxo-spx #account-video-table .account-tag-ordinary{background:#f7f8fa;color:#666;}
+body.ryxo-spx #account-video-table .account-source-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;line-height:1.6;color:#181c23;font-weight:500;text-decoration:none;}
+body.ryxo-spx #account-video-table .account-source-title:hover{color:#28831a;text-decoration:underline;}
+body.ryxo-spx #account-video-table .account-retry-button{display:block;width:100%;min-width:0;font-size:12px;padding:4px 2px;margin-top:8px;}
+body.ryxo-spx .pipeline-tabs[hidden]{display:none!important;}

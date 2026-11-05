@@ -1,3 +1,4 @@
+import {videoRetryRoute,mergeVideoRetryRows} from './video-retry.mjs';
 import {translateIntelligence} from './intelligence-translation.mjs';
 import {atomicReplace} from './atomic-replace.mjs';
 import {intelligenceDatabaseUrl,syncIntelligence} from './intelligence-sync.mjs';
@@ -181,20 +182,21 @@ const routes = {
   '/api/studio/publications': async db => db.publications
 };
 
-async function startCollectionStage(db,run,stage){
+async function startCollectionStage(db,run,stage,selection=null){
       const stageRun={id:id('run'),jobId:run.id,taskKind:`douyin-${stage}`,state:'running',startedAt:new Date().toISOString(),cost:stage==='asr'?null:0,logs:''};
       const taskDir=join(dataDir,'collections',run.id);const stageDir=join(taskDir,stageRun.id);await mkdir(stageDir,{recursive:true});
       await writeFile(join(taskDir,'result.json'),JSON.stringify(run.rows),'utf8');db.taskRuns.unshift(stageRun);await saveDb(db);
+      if(selection){stageRun.videoId=selection.videoId;await writeFile(join(stageDir,'selection.json'),JSON.stringify(selection),'utf8');}
       const child=spawn(await collectionPython(dataDir),['-I','-u',join(root,'process-douyin.py'),taskDir,stageDir,stage],{windowsHide:true,env:{...process.env,PYTHONUTF8:'1',PYTHONIOENCODING:'utf-8'}});
       collectionProcesses.set(stageRun.id,child);
       const timer=setTimeout(()=>{stageRun.error='stage_timeout';stopCollection(child);},Math.max(10*60*1000,run.rows.length*180000));timer.unref();
       const stdoutDecoder=new StringDecoder('utf8'),stderrDecoder=new StringDecoder('utf8');const log=(chunk,decoder)=>{stageRun.logs=(stageRun.logs+decoder.write(chunk)).slice(-20000);saveDb(db).catch(console.error);};child.stdout.on('data',chunk=>log(chunk,stdoutDecoder));child.stderr.on('data',chunk=>log(chunk,stderrDecoder));
       child.on('error',error=>{stageRun.error=error.message;});
       const done=new Promise(resolve=>child.on('close',async code=>{clearTimeout(timer);collectionProcesses.delete(stageRun.id);try{
-        const result=JSON.parse(await readFile(join(stageDir,'result.json'),'utf8'));run.rows=result;
+        const result=JSON.parse(await readFile(join(stageDir,'result.json'),'utf8'));run.rows=selection?mergeVideoRetryRows(run.rows,result,selection.videoId):result;
         stageRun.summary=JSON.parse(await readFile(join(stageDir,'summary.json'),'utf8'));
         stageRun.state=code===0?(stageRun.summary.failed||stageRun.summary.unknown?'partial':'succeeded'):(stage==='asr'?'unknown':'failed');
-        await writeFile(join(taskDir,'result.json'),JSON.stringify(result),'utf8');
+        await writeFile(join(taskDir,'result.json'),JSON.stringify(run.rows),'utf8');
       }catch(error){stageRun.state=stage==='asr'?'unknown':'failed';stageRun.error=stageRun.error||error.message;}
       stageRun.finishedAt=new Date().toISOString();await saveDb(db).catch(console.error);resolve(stageRun);}));
 
@@ -212,6 +214,7 @@ async function handle(req, res) {
   if (url.pathname.startsWith('/api/')) {
     if (!sameOriginRequest(req)) return json(res,403,{error:'cross_origin_request_denied'});
     if (!authorized(req)) return json(res, 401, { error: 'studio_auth_required' });
+    if(await videoRetryRoute({req,res,url,db,json,body,saveDb,startStage:startCollectionStage,asrReady:Boolean(process.env.DASHSCOPE_API_KEY)}))return;
     if(await writingDnaRoutes({req,res,url,db,json,body,saveDb,startFlow:task=>runCollectionFlow(db,task)}))return;
     if(await assetManageRoute({req,res,url,db,json,body,saveDb}))return;
     if(await promptLibraryRoute({req,res,url,db,json,body,saveDb}))return;
